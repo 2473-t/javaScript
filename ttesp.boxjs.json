@@ -11,12 +11,12 @@
       "keys": [ "token_ats", "answers_ats", "latitude_ats", "longitude_ats", "country_ats", "city_ats", "district_ats", "province_ats", "township_ats", "street_ats", "areacode_ats" ],
       "descs_html": [
         "我在校园健康打卡脚本地址【<a href=\"https://raw.githubusercontent.com/ztxtop/x/main/youth.js\">我在校园健康打卡</a>】",
-        "我在校园健康打卡获取数据的重写订阅【<a href=\"https://raw.githubusercontent.com/ztxtop/x/main/rewrite-zq.plugin\">我在校园重写</a>】【<a href=\"https://raw.githubusercontent.com/ztxtop/x/main/rewrite-zqkkz.plugin\">中青看看赚、浏览赚</a>】",
+        "我在校园健康打卡获取数据的重写订阅【<a href=\"https://raw.githubusercontent.com/ztxtop/x/main/rewrite-zq.plugin\">我在校园重写</a>】",
         "备注：具体使用方法有空我再写，脚本后续还会继续完善。"
       ],
       "author": "@ttesp",
       "repo": "https://github.com/2473-t/javaScript/blob/main/atschool.js",
-      "icons": [ "https://raw.githubusercontent.com/2473-t/javaScript/main/icon_2473/atschool.png" ],
+      "icons": [ , "https://raw.githubusercontent.com/2473-t/javaScript/main/icon_2473/atschool_box_C" ],
       "script": "https://raw.githubusercontent.com/2473-t/javaScript/main/atschool.js"
     }
   ]
