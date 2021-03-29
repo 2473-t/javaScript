@@ -16,7 +16,7 @@
       ],
       "author": "@ttesp",
       "repo": "https://github.com/2473-t/javaScript/blob/main/atschool.js",
-      "icons": [ , "https://raw.githubusercontent.com/2473-t/javaScript/main/icon_2473/atschool_box_C.png" ],
+      "icons": [ "https://raw.githubusercontent.com/Orz-3/mini/master/Alpha/wxdaka.png", "https://raw.githubusercontent.com/2473-t/javaScript/main/icon_2473/atschool_box_C.png" ],
       "script": "https://raw.githubusercontent.com/2473-t/javaScript/main/atschool.js"
     }
   ]
