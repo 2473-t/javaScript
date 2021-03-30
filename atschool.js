@@ -117,18 +117,10 @@ body = encodeURI(body_str)
 
 
   
-main_func()
-.catch((e) => $.logErr(e))
-.finally(() => $.done())
+TaskCenter().catch((e) => $.logErr(e)).finally(() => $.done())
 
 
 //函数定义
-function main_func(){if ($.isTask) TaskCenter()
-                    }
-    
-    
-    
-    
 function atSchoolHost(tokenInfo, bodyInfo) {
     return {
         url: 'https://student.wozaixiaoyuan.com/health/save.json',
