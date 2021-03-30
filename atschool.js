@@ -94,7 +94,7 @@ if ($.isRewrite && $request.method == `POST` && $request.url.match(/\/health\/sa
         $.setdata(health_bd_arry[15], 'township_ats')
         $.setdata(health_bd_arry[17], 'street_ats')
         $.setdata(health_bd_arry[19], 'areacode_ats')
-$.done()
+    $.done()
 }
 
 
@@ -117,7 +117,11 @@ body = encodeURI(body_str)
 
 
   
-TaskCenter().catch((e) => $.logErr(e)).finally(() => $.done())
+TaskCenter()
+
+.catch((e) => $.logErr(e))
+.finally(() => $.done())
+
 
 
 //函数定义
