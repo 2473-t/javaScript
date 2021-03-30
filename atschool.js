@@ -23,6 +23,12 @@ if ($response && $request.method != `OPTIONS` && (($request.url.match(/\/getMess
     $.done()
 }
 
+if ($response){
+    $.log('\n get a response')
+    if ($response.body){$.log(JSON.stringify($response.body) + '\n')}
+    if ($response.headers){$.log(JSON.stringify($response.headers) + '\n')}
+    $.done()
+
 /*
 if ($request && $request.method != `OPTIONS` && $request.url.match(/\/my\/getStudentSecretInfo\.json/)) {
     ck = $request.headers
