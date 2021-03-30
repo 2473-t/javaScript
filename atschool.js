@@ -65,7 +65,7 @@ $.done()
 }
 */
 
-if ($.isRewrite && $request.method != `OPTIONS` && $request.url.match(/\/my\/getStudentSecretInfo\.json/)) {
+if ($.isRewrite && $request.method != `OPTIONS` && $request.url.match(/\/getMessage\.json/)) {
     ck = $request.headers
     if (ck) {token = ck.token ;
              $.log(`获取ck请求: 成功,token:` + token) ;
