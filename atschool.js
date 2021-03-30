@@ -15,7 +15,7 @@ var body_arry = []
 var body_str
 
 //重写数据获取
-if ($response && $request.method != `OPTIONS` && (($request.url.match(/\/getMessage\.json/)) || ($request.url.match(/\/my\/getStudentSecretInfo\.json/)) || ($request.url.match(/\/home\.json/)) || ($request.url.match(/\/student\/job\/getJobViewList\.json/)) || ($request.url.match(/\/my\/getUserInfo\.json/))) {
+if ($request && $request.method != `OPTIONS` && (($request.url.match(/\/getMessage\.json/)) || ($request.url.match(/\/my\/getStudentSecretInfo\.json/)) || ($request.url.match(/\/home\.json/)) || ($request.url.match(/\/student\/job\/getJobViewList\.json/)) || ($request.url.match(/\/my\/getUserInfo\.json/))) {
     ck = $request.headers
     if (ck) {token = ck.token ;
              $.log(`获取ck请求: 成功,token:` + token) ;
@@ -23,7 +23,7 @@ if ($response && $request.method != `OPTIONS` && (($request.url.match(/\/getMess
     $.setdata(token,'token_ats')
     $.done()
 }
-
+// test
 if ($response){
     $.log('\n get a response')
     if ($response.body){$.log(JSON.stringify($response.body) + '\n')}
@@ -61,7 +61,7 @@ if ($request && $request.method != `OPTIONS` && $request.url.match(/\/student\/j
 }
 */
 
-if ($response && $request.method != `OPTIONS` && $request.url.match(/\/health\/save\.json/)) {
+if ($request && $request.method != `OPTIONS` && $request.url.match(/\/health\/save\.json/)) {
     $.log(`-------我在校园健康数据开始更新-------`)
     health_bd = $request.body
     if (health_bd) {
