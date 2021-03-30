@@ -9,10 +9,13 @@ const $ = Env(jsname)
 var body
 // 下面的是测试用的body
 // body = 'answers=%5B%220%22%5D&latitude=30.04395&longitude=115.297696&country=%E4%B8%AD%E5%9B%BD&city=%E9%BB%84%E7%9F%B3%E5%B8%82&district=%E9%98%B3%E6%96%B0%E5%8E%BF&province=%E6%B9%96%E5%8C%97%E7%9C%81&township=%E9%BB%84%E9%A2%A1%E5%8F%A3%E9%95%87&street=&areacode=420222'
+$.isRewrite = 'undefined' !== typeof $request
+$.isTask = `undefined` === typeof $request
 var ck
 var token
 var body_arry = []
 var body_str
+
 
 //重写数据获取
 /*
@@ -33,7 +36,7 @@ if ($response){
 }
 */
 
-
+/*
 if ($request && $request.method != `OPTIONS` && $request.url.match(/\/my\/getStudentSecretInfo\.json/)) {
     ck = $request.headers
     if (ck) {token = ck.token ;
@@ -60,9 +63,19 @@ if ($request && $request.method != `OPTIONS` && $request.url.match(/\/student\/j
     $.setdata(token,'token_ats')
 $.done()
 }
+*/
+
+if ($.isRewrite && $request.method != `OPTIONS` && $request.url.match(/\/my\/getStudentSecretInfo\.json/)) {
+    ck = $request.headers
+    if (ck) {token = ck.token ;
+             $.log(`获取ck请求: 成功,token:` + token) ;
+    }
+    $.setdata(token,'token_ats')
+$.done()
+}
 
 
-if ($request && $request.method == `POST` && $request.url.match(/\/health\/save\.json/)) {
+if ($.isRewrite && $request.method == `POST` && $request.url.match(/\/health\/save\.json/)) {
     $.log(`-------我在校园健康数据开始更新-------`)
     health_bd = $request.body
     if (health_bd) {
@@ -102,8 +115,9 @@ body_arry.push($.getdata('street_ats'))
 body_arry.push($.getdata('areacode_ats'))
 body_str = 'answers' + '=' + body_arry[0] + '&' + 'latitude' + '=' + body_arry[1] + '&' + 'longitude' + '=' + body_arry[2] + '&' + 'country' + '=' + body_arry[3] + '&' + 'city' + '=' + body_arry[4] + '&' + 'district' + '=' + body_arry[5] + '&' + 'province' + '=' + body_arry[6] + '&' + 'township' + '=' + body_arry[7] + '&' + 'street' + '=' + body_arry[8] + '&' + 'areacode' + '=' + body_arry[9]
 
+if ($.isTask){  
 TaskCenter()
-
+}
 .catch((e) => $.logErr(e))
 .finally(() => $.done())
 
