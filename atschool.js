@@ -15,6 +15,7 @@ var body_arry = []
 var body_str
 
 //重写数据获取
+/*
 if ($request && $request.method == `POST` && (($request.url.match(/\/getMessage\.json/)) || ($request.url.match(/\/my\/getStudentSecretInfo\.json/)) || ($request.url.match(/\/home\.json/)) || ($request.url.match(/\/student\/job\/getJobViewList\.json/)) || ($request.url.match(/\/my\/getUserInfo\.json/))) {
     ck = $request.headers
     if (ck) {token = ck.token ;
@@ -30,16 +31,16 @@ if ($response){
     if ($response.headers){$.log(JSON.stringify($response.headers) + '\n')
     $.done()
 }
-    
+*/
 
-/*
+
 if ($request && $request.method != `OPTIONS` && $request.url.match(/\/my\/getStudentSecretInfo\.json/)) {
     ck = $request.headers
     if (ck) {token = ck.token ;
              $.log(`获取ck请求: 成功,token:` + token) ;
     }
     $.setdata(token,'token_ats')
-    $.done()
+$.done()
 }
 
 if ($request && $request.method != `OPTIONS` && $request.url.match(/\/home\.json/)) {
@@ -48,7 +49,7 @@ if ($request && $request.method != `OPTIONS` && $request.url.match(/\/home\.json
              $.log(`获取ck请求: 成功,token:` + token) ;
     }
     $.setdata(token,'token_ats')
-    $.done()
+$.done()
 }
 
 if ($request && $request.method != `OPTIONS` && $request.url.match(/\/student\/job\/getJobViewList\.json/)) {
@@ -57,9 +58,9 @@ if ($request && $request.method != `OPTIONS` && $request.url.match(/\/student\/j
              $.log(`获取ck请求: 成功,token:` + token) ;
     }
     $.setdata(token,'token_ats')
-    $.done()
+$.done()
 }
-*/
+
 
 if ($request && $request.method == `POST` && $request.url.match(/\/health\/save\.json/)) {
     $.log(`-------我在校园健康数据开始更新-------`)
@@ -81,7 +82,7 @@ if ($request && $request.method == `POST` && $request.url.match(/\/health\/save\
         $.setdata(health_bd_arry[15], 'township_ats')
         $.setdata(health_bd_arry[17], 'street_ats')
         $.setdata(health_bd_arry[19], 'areacode_ats')
-    $.done()
+$.done()
 }
 
 
