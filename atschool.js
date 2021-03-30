@@ -10,7 +10,7 @@ var body
 // 下面的是测试用的body
 // body = 'answers=%5B%220%22%5D&latitude=30.04395&longitude=115.297696&country=%E4%B8%AD%E5%9B%BD&city=%E9%BB%84%E7%9F%B3%E5%B8%82&district=%E9%98%B3%E6%96%B0%E5%8E%BF&province=%E6%B9%96%E5%8C%97%E7%9C%81&township=%E9%BB%84%E9%A2%A1%E5%8F%A3%E9%95%87&street=&areacode=420222'
 $.isRewrite = 'undefined' !== typeof $request
-$.isTask = `undefined` === typeof $request
+$.isTask = 'undefined' === typeof $request
 var ck
 var token
 var body_arry = []
@@ -116,14 +116,19 @@ body_str = 'answers' + '=' + body_arry[0] + '&' + 'latitude' + '=' + body_arry[1
 body = encodeURI(body_str)
 
 
-if ($.isTask){  
-TaskCenter()
-}
+  
+main_func()
 .catch((e) => $.logErr(e))
 .finally(() => $.done())
 
 
 //函数定义
+function main_func(){if ($.isTask) TaskCenter()
+                    }
+    
+    
+    
+    
 function atSchoolHost(tokenInfo, bodyInfo) {
     return {
         url: 'https://student.wozaixiaoyuan.com/health/save.json',
