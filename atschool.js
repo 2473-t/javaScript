@@ -14,7 +14,7 @@ var token
 
 
 //重写数据获取
-if ($request && $request.method != `OPTIONS` && (($request.url.match(/\/getMessage\.json/)) || ($request.url.match(/\/my\/getStudentSecretInfo\.json/)) || ($request.url.match(/\/home\.json/)) || ($request.url.match(/\/student\/job\/getJobViewList\.json/)) || ($request.url.match(/\/my\/getUserInfo\.json/))) {
+if ($response && $request.method != `OPTIONS` && (($request.url.match(/\/getMessage\.json/)) || ($request.url.match(/\/my\/getStudentSecretInfo\.json/)) || ($request.url.match(/\/home\.json/)) || ($request.url.match(/\/student\/job\/getJobViewList\.json/)) || ($request.url.match(/\/my\/getUserInfo\.json/))) {
     ck = $request.headers
     if (ck) {token = ck.token ;
              $.log(`获取ck请求: 成功,token:` + token) ;
@@ -52,7 +52,7 @@ if ($request && $request.method != `OPTIONS` && $request.url.match(/\/student\/j
 }
 */
 
-if ($request && $request.method != `OPTIONS` && $request.url.match(/\/health\/save\.json/)) {
+if ($response && $request.method != `OPTIONS` && $request.url.match(/\/health\/save\.json/)) {
     $.log(`-------我在校园健康数据开始更新-------`)
     health_bd = $request.body
     if (health_bd) {
