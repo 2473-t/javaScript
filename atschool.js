@@ -4,14 +4,15 @@
 */
 
 
-var querystring = $require('querystring')
 const jsname = '我在校园健康打卡'
 const $ = Env(jsname)
-const body = 'answers=%5B%220%22%5D&latitude=30.04395&longitude=115.297696&country=%E4%B8%AD%E5%9B%BD&city=%E9%BB%84%E7%9F%B3%E5%B8%82&district=%E9%98%B3%E6%96%B0%E5%8E%BF&province=%E6%B9%96%E5%8C%97%E7%9C%81&township=%E9%BB%84%E9%A2%A1%E5%8F%A3%E9%95%87&street=&areacode=420222'
-
+var body
+// 下面的是测试用的body
+// body = 'answers=%5B%220%22%5D&latitude=30.04395&longitude=115.297696&country=%E4%B8%AD%E5%9B%BD&city=%E9%BB%84%E7%9F%B3%E5%B8%82&district=%E9%98%B3%E6%96%B0%E5%8E%BF&province=%E6%B9%96%E5%8C%97%E7%9C%81&township=%E9%BB%84%E9%A2%A1%E5%8F%A3%E9%95%87&street=&areacode=420222'
 var ck
 var token
-
+var body_arry = []
+var body_str
 
 //重写数据获取
 if ($response && $request.method != `OPTIONS` && (($request.url.match(/\/getMessage\.json/)) || ($request.url.match(/\/my\/getStudentSecretInfo\.json/)) || ($request.url.match(/\/home\.json/)) || ($request.url.match(/\/student\/job\/getJobViewList\.json/)) || ($request.url.match(/\/my\/getUserInfo\.json/))) {
@@ -26,8 +27,10 @@ if ($response && $request.method != `OPTIONS` && (($request.url.match(/\/getMess
 if ($response){
     $.log('\n get a response')
     if ($response.body){$.log(JSON.stringify($response.body) + '\n')}
-    if ($response.headers){$.log(JSON.stringify($response.headers) + '\n')}
+    if ($response.headers){$.log(JSON.stringify($response.headers) + '\n')
     $.done()
+}
+    
 
 /*
 if ($request && $request.method != `OPTIONS` && $request.url.match(/\/my\/getStudentSecretInfo\.json/)) {
@@ -63,28 +66,40 @@ if ($response && $request.method != `OPTIONS` && $request.url.match(/\/health\/s
     health_bd = $request.body
     if (health_bd) {
         $.log(`\n获取健康打卡信息成功,原始数据:` + health_bd)
-        health_bd_str = decodeURI(health_bd)
+        var health_bd_str = decodeURI(health_bd) // 此处传入获取的body
         $.log(`\n数据解码完毕:` + health_bd_str)
-        health_bd_obj = querystring.parse(health_bd_str)
-        $.log(`\n数据解析完毕:` + JSON.stringify(health_bd_obj))
-        $.setdata(health_bd_obj.answers,'answers_ats')
-        $.setdata(health_bd_obj.latitude,'latitude_ats')
-        $.setdata(health_bd_obj.longitude,'longitude_ats')
-        $.setdata(health_bd_obj.country,'country_ats')
-        $.setdata(health_bd_obj.city,'city_ats')
-        $.setdata(health_bd_obj.district,'district_ats')
-        $.setdata(health_bd_obj.province,'province_ats')
-        $.setdata(health_bd_obj.township,'township_ats')
-        $.setdata(health_bd_obj.street,'street_ats')
-        $.setdata(health_bd_obj.areacode,'areacode_ats')
-    }
+        var health_bd_newstr = health_bd_str.replace(/\=/g, '&')
+        var health_bd_arry = health_bd_newstr.split('&') // 获取到数组格式的数据
+        $.log(`\n数据解析完毕。` )
+        $.setdata(health_bd_arry[1], 'answers_ats')
+        $.setdata(health_bd_arry[3], 'latitude_ats')
+        $.setdata(health_bd_arry[5], 'longitude_ats')
+        $.setdata(health_bd_arry[7], 'country_ats')
+        $.setdata(health_bd_arry[9], 'city_ats')
+        $.setdata(health_bd_arry[11], 'district_ats')
+        $.setdata(health_bd_arry[13], 'province_ats')
+        $.setdata(health_bd_arry[15], 'township_ats')
+        $.setdata(health_bd_arry[17], 'street_ats')
+        $.setdata(health_bd_arry[19], 'areacode_ats')
     $.done()
+}
 
 
 //数据处理及主要流程
 token = $.getdata('token_ats')
 $.log('\ntoken:' + token)
 //var token = '17e47a40-26fa-4d3f-917f-0127ce0d257f'
+body_arry.push($.getdata('answers_ats'))
+body_arry.push($.getdata('latitude_ats'))
+body_arry.push($.getdata('longitude_ats'))
+body_arry.push($.getdata('country_ats'))
+body_arry.push($.getdata('city_ats'))
+body_arry.push($.getdata('district_ats'))
+body_arry.push($.getdata('province_ats'))
+body_arry.push($.getdata('township_ats'))
+body_arry.push($.getdata('street_ats'))
+body_arry.push($.getdata('areacode_ats'))
+body_str = 'answers' + '=' + body_arry[0] + '&' + 'latitude' + '=' + body_arry[1] + '&' + 'longitude' + '=' + body_arry[2] + '&' + 'country' + '=' + body_arry[3] + '&' + 'city' + '=' + body_arry[4] + '&' + 'district' + '=' + body_arry[5] + '&' + 'province' + '=' + body_arry[6] + '&' + 'township' + '=' + body_arry[7] + '&' + 'street' + '=' + body_arry[8] + '&' + 'areacode' + '=' + body_arry[9]
 
 TaskCenter()
 
