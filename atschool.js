@@ -18,7 +18,7 @@ if ($request && $request.method != `OPTIONS` && $request.url.match(/\/getMessage
     if (ck) {token = ck.token ;
              $.log(`获取ck请求: 成功,token:` + token) ;
     }
-    $.setdata(token_ats,'token')
+    $.setdata(token,'token_ats')
     $.done()
 }
 
@@ -27,7 +27,7 @@ if ($request && $request.method != `OPTIONS` && $request.url.match(/\/my\/getStu
     if (ck) {token = ck.token ;
              $.log(`获取ck请求: 成功,token:` + token) ;
     }
-    $.setdata(token_ats,'token')
+    $.setdata(token,'token_ats')
     $.done()
 }
 
@@ -36,7 +36,7 @@ if ($request && $request.method != `OPTIONS` && $request.url.match(/\/home\.json
     if (ck) {token = ck.token ;
              $.log(`获取ck请求: 成功,token:` + token) ;
     }
-    $.setdata(token_ats,'token')
+    $.setdata(token,'token_ats')
     $.done()
 }
 
@@ -45,7 +45,7 @@ if ($request && $request.method != `OPTIONS` && $request.url.match(/\/student\/j
     if (ck) {token = ck.token ;
              $.log(`获取ck请求: 成功,token:` + token) ;
     }
-    $.setdata(token_ats,'token')
+    $.setdata(token,'token_ats')
     $.done()
 }
 
