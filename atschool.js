@@ -113,6 +113,8 @@ body_arry.push($.getdata('township_ats'))
 body_arry.push($.getdata('street_ats'))
 body_arry.push($.getdata('areacode_ats'))
 body_str = 'answers' + '=' + body_arry[0] + '&' + 'latitude' + '=' + body_arry[1] + '&' + 'longitude' + '=' + body_arry[2] + '&' + 'country' + '=' + body_arry[3] + '&' + 'city' + '=' + body_arry[4] + '&' + 'district' + '=' + body_arry[5] + '&' + 'province' + '=' + body_arry[6] + '&' + 'township' + '=' + body_arry[7] + '&' + 'street' + '=' + body_arry[8] + '&' + 'areacode' + '=' + body_arry[9]
+body = encodeURI(body_str)
+
 
 if ($.isTask){  
 TaskCenter()
