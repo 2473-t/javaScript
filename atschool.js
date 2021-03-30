@@ -11,7 +11,8 @@ const body = 'answers=%5B%220%22%5D&latitude=30.04395&longitude=115.297696&count
 var ck
 var token
 
-//任务判定
+
+//重写数据获取
 if ($request && $request.method != `OPTIONS` && $request.url.match(/\/getMessage\.json/)) {
     ck = JSON.stringify($request.headers)
     if (ck) $.log(`获取ck请求: 成功,ck: ${ck}`)
@@ -19,9 +20,11 @@ if ($request && $request.method != `OPTIONS` && $request.url.match(/\/getMessage
 }
 
 if ($request && $request.method != `OPTIONS` && $request.url.match(/\/my\/getStudentSecretInfo\.json/)) {
-    ck = JSON.stringify($request.headers)
-    if (ck) $.log(`获取ck请求: 成功,ck: ${ck}`)
-    $.setdata(ck, 'ck')
+    ck = $request.headers
+    if (ck) {token = ck.token ;
+             $.log(`获取ck请求: 成功,token:` + token) ;
+    }
+    $.setdata(token_ats,'token')
     $.done()
 }
 
@@ -37,10 +40,9 @@ if ($request && $request.method != `OPTIONS` && $request.url.match(/\/student\/j
     $.done()
 }
 
-ck = $.getdata('ck')
-obj = JSON.parse(ck)
-token = obj.token
 
+//数据处理及主要流程
+token = $.getdata('token_ats')
 $.log('\ntoken:' + token)
 //var token = '17e47a40-26fa-4d3f-917f-0127ce0d257f'
 
@@ -50,6 +52,7 @@ TaskCenter()
 .finally(() => $.done())
 
 
+//函数定义
 function atSchoolHost(tokenInfo, bodyInfo) {
     return {
         url: 'https://student.wozaixiaoyuan.com/health/save.json',
