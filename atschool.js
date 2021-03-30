@@ -14,8 +14,11 @@ var token
 
 //重写数据获取
 if ($request && $request.method != `OPTIONS` && $request.url.match(/\/getMessage\.json/)) {
-    ck = JSON.stringify($request.headers)
-    if (ck) $.log(`获取ck请求: 成功,ck: ${ck}`)
+    ck = $request.headers
+    if (ck) {token = ck.token ;
+             $.log(`获取ck请求: 成功,token:` + token) ;
+    }
+    $.setdata(token_ats,'token')
     $.done()
 }
 
@@ -29,14 +32,20 @@ if ($request && $request.method != `OPTIONS` && $request.url.match(/\/my\/getStu
 }
 
 if ($request && $request.method != `OPTIONS` && $request.url.match(/\/home\.json/)) {
-    ck = JSON.stringify($request.headers)
-    if (ck) $.log(`获取ck请求: 成功,ck: ${ck}`)
+    ck = $request.headers
+    if (ck) {token = ck.token ;
+             $.log(`获取ck请求: 成功,token:` + token) ;
+    }
+    $.setdata(token_ats,'token')
     $.done()
 }
 
 if ($request && $request.method != `OPTIONS` && $request.url.match(/\/student\/job\/getJobViewList\.json/)) {
-    ck = JSON.stringify($request.headers)
-    if (ck) $.log(`获取ck请求: 成功,ck: ${ck}`)
+    ck = $request.headers
+    if (ck) {token = ck.token ;
+             $.log(`获取ck请求: 成功,token:` + token) ;
+    }
+    $.setdata(token_ats,'token')
     $.done()
 }
 
