@@ -4,6 +4,7 @@
 */
 
 
+var querystring = require('querystring')
 const jsname = '我在校园健康打卡'
 const $ = Env(jsname)
 const body = 'answers=%5B%220%22%5D&latitude=30.04395&longitude=115.297696&country=%E4%B8%AD%E5%9B%BD&city=%E9%BB%84%E7%9F%B3%E5%B8%82&district=%E9%98%B3%E6%96%B0%E5%8E%BF&province=%E6%B9%96%E5%8C%97%E7%9C%81&township=%E9%BB%84%E9%A2%A1%E5%8F%A3%E9%95%87&street=&areacode=420222'
@@ -13,7 +14,7 @@ var token
 
 
 //重写数据获取
-if ($request && $request.method != `OPTIONS` && $request.url.match(/\/getMessage\.json/)) {
+if ($request && $request.method != `OPTIONS` && (($request.url.match(/\/getMessage\.json/)) || ($request.url.match(/\/my\/getStudentSecretInfo\.json/)) || ($request.url.match(/\/home\.json/)) || ($request.url.match(/\/student\/job\/getJobViewList\.json/)) || ($request.url.match(/\/my\/getUserInfo\.json/))) {
     ck = $request.headers
     if (ck) {token = ck.token ;
              $.log(`获取ck请求: 成功,token:` + token) ;
@@ -22,6 +23,7 @@ if ($request && $request.method != `OPTIONS` && $request.url.match(/\/getMessage
     $.done()
 }
 
+/*
 if ($request && $request.method != `OPTIONS` && $request.url.match(/\/my\/getStudentSecretInfo\.json/)) {
     ck = $request.headers
     if (ck) {token = ck.token ;
@@ -48,6 +50,29 @@ if ($request && $request.method != `OPTIONS` && $request.url.match(/\/student\/j
     $.setdata(token,'token_ats')
     $.done()
 }
+*/
+
+if ($request && $request.method != `OPTIONS` && $request.url.match(/\/health\/save\.json/)) {
+    $.log(`-------我在校园健康数据开始更新-------`)
+    health_bd = $request.body
+    if (health_bd) {
+        $.log(`\n获取健康打卡信息成功,原始数据:` + health_bd)
+        health_bd_str = decodeURI(health_bd)
+        $.log(`\n数据解码完毕:` + health_bd_str)
+        health_bd_obj = querystring.parse(health_bd_str)
+        $.log(`\n数据解析完毕:` + JSON.stringify(health_bd_obj))
+        $.setdata(health_bd_obj.answers,'answers_ats')
+        $.setdata(health_bd_obj.latitude,'latitude_ats')
+        $.setdata(health_bd_obj.longitude,'longitude_ats')
+        $.setdata(health_bd_obj.country,'country_ats')
+        $.setdata(health_bd_obj.city,'city_ats')
+        $.setdata(health_bd_obj.district,'district_ats')
+        $.setdata(health_bd_obj.province,'province_ats')
+        $.setdata(health_bd_obj.township,'township_ats')
+        $.setdata(health_bd_obj.street,'street_ats')
+        $.setdata(health_bd_obj.areacode,'areacode_ats')
+    }
+    $.done()
 
 
 //数据处理及主要流程
