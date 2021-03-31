@@ -11,7 +11,6 @@ var body
 // body = 'answers=%5B%220%22%5D&latitude=30.04395&longitude=115.297696&country=%E4%B8%AD%E5%9B%BD&city=%E9%BB%84%E7%9F%B3%E5%B8%82&district=%E9%98%B3%E6%96%B0%E5%8E%BF&province=%E6%B9%96%E5%8C%97%E7%9C%81&township=%E9%BB%84%E9%A2%A1%E5%8F%A3%E9%95%87&street=&areacode=420222'
 $.isRewrite = 'undefined' !== typeof $request
 $.isTask = 'undefined' === typeof $request
-var ck
 var token
 var body_arry = []
 var body_str
@@ -95,8 +94,8 @@ if ($.isRewrite && $request.method == `POST` && $request.url.match(/\/health\/sa
         $.setdata(health_bd_arry[17], 'street_ats')
         $.setdata(health_bd_arry[19], 'areacode_ats')
     $.done()
+    }
 }
-
 
 //数据处理及主要流程
 token = $.getdata('token_ats')
@@ -118,7 +117,6 @@ body = encodeURI(body_str)
 
   
 TaskCenter()
-
 .catch((e) => $.logErr(e))
 .finally(() => $.done())
 
@@ -131,7 +129,7 @@ function atSchoolHost(tokenInfo, bodyInfo) {
         headers: {
             'Host': 'student.wozaixiaoyuan.com',
             'Connection': 'keep-alive',
-            'Content-Length': '264',
+            //'Content-Length': '264',
             'Cookie': '',
             'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/7.0.21(0x17001522) NetType/WIFI Language/zh_CN',
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -147,6 +145,7 @@ function atSchoolHost(tokenInfo, bodyInfo) {
 }
 
 function TaskCenter() {
+    if ($.isRewrite) return
     return new Promise((resolve, reject) => {
         $.post(atSchoolHost(token,body), async (error, resp, data) => {
             try {
