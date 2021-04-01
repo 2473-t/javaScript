@@ -13,8 +13,8 @@
         "我在校园健康打卡脚本地址【<a href=\"https://raw.githubusercontent.com/2473-t/javaScript/main/atschool/atschool.js\">我在校园健康打卡</a>】",
         "我在校园健康打卡更新token的重写订阅【<a href=\"https://raw.githubusercontent.com/2473-t/javaScript/main/atschool/atschool_tk.conf\">我在校园重写</a>】",
         "我在校园健康打卡获取健康状态和位置信息的重写订阅【<a href=\"https://raw.githubusercontent.com/2473-t/javaScript/main/atschool/atschool_bd.conf\">我在校园重写</a>】",
-        "STEP1：更新token的重写订阅开启后去我在校园小程序消息界面即可获取更新token，没获取到就刷新消息界面，只要加载他了就会获取到"
-        "STEP2：body包含了健康状态和位置信息，不要改动健康状态，位置信息可以手动填，也可以开启获取token的重写订阅后去小程序手动打卡一次即可"
+        "STEP1：更新token的重写订阅开启后去我在校园小程序消息界面即可获取更新token，没获取到就刷新消息界面，只要加载他了就会获取到",
+        "STEP2：body包含了健康状态和位置信息，不要改动健康状态，位置信息可以手动填，也可以开启获取token的重写订阅后去小程序手动打卡一次即可",
         "备注：个别数据如street_ats是未获取状态可能本身所处地理位置就不需要这个，token_ats失效较快一般3-5天失效，届时需要进入小程序消息界面在获取一次"
       ],
       "author": "@ttesp",
