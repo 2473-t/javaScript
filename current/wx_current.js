@@ -14,34 +14,41 @@ $.isTask = 'undefined' === typeof $request
 
 // 声明
 var data_json1
-const average_fee = 2525
+var average_fee = 2525
 const fee_std_diff = 525
 const mid_time = "12:10:25"
 const night_time = "16:58:35"
 const start_time = "2022-08-01 12:25:19"
 const end_time = "2022-08-31 11:15:43"
-const time_minutes_stddiff = 30
-const start_day = 1
-const end_day = 26
-const year = 2022
+var time_minutes_stddiff = 30
+var start_day = 1
+var end_day = 26
+var year = 2022
 var month = 8
 var day
 var counter = 0
 var time_t
 var fee_total_fake = 0
-data_json1 = JSON.parse(JSON.stringify(data))
-month = month - 1
-  
+
+
 // var demo_time = new Date(year, month, day, hours, minutes, seconds, milliseconds)
 
 
 // 流水加工,持久化储存。
 function TaskCenter() {
     if ($.isRewrite) return
+    average_fee = parseInt($.getdata('average_fee_wxc'))
+    time_minutes_stddiff = parseInt($.getdata('minutes_stddiff_wxc'))
+    start_day = parseInt($.getdata('start_day_wxc'))
+    end_day = parseInt($.getdata('end_day_wxc'))
+    year = parseInt($.getdata('year_wxc'))
+    month = parseInt($.getdata('month_wxc')) - 1
+    data = $.getdata('data_wxc')
+    data_json1 = JSON.parse(JSON.stringify(data))
     for (let day = start_day; day < end_day; day++) {
         for (let hours_base = 12; hours_base <= 17; hours_base = hours_base + 5) {
             data_json1.record[counter] = JSON.parse(JSON.stringify(data.record[0]))
-            time_t = new Date(2022, month, day, hours_base, 13, 23, 40).getTime() + parseInt(time_minutes_stddiff * 60 * 1000 * Math.random())
+            time_t = new Date(year, month, day, hours_base, 13, 23, 40).getTime() + parseInt(time_minutes_stddiff * 60 * 1000 * Math.random())
             time_t = parseInt(time_t / 1000)
             fee_t = average_fee + parseInt(fee_std_diff * Math.random())
             data_json1.record[counter].timestamp = time_t
@@ -56,7 +63,8 @@ function TaskCenter() {
     data_json1.statistic[0].pay_fee = fee_total_fake
     data_json1.last_create_time = time_t
     data_output = JSON.stringify(data_json1)
-    $.setdata(wxc_bd_json, data_output)
+    $.setdata(data_output, 'current_wxc')
+    $.setdata(fee_total_fake, 'total_fee_wxc')
 }
 
 
@@ -408,314 +416,3 @@ function Env(t, e) {
       }
   }(t, e)
 }
-
-
-// 数据源声明
-const data = {
-    "record" : [
-      {
-        "timestamp" : 1660880750,
-        "bill_id" : "6e07ff6220a10700BgAAC8TS0ORpBYVIYQ==",
-        "fee_type" : "CNY",
-        "trans_id" : "4200059219202208194747242198",
-        "fee" : 1748,
-        "current_state_type" : "neutral",
-        "title" : "杭州冠领餐饮管理有限公司",
-        "current_state" : "",
-        "bill_type" : 10,
-        "icon_url" : "https://mmbiz.qpic.cn/mmbiz_png/mOrK95e2Bsrz2dnRHDye74LYOXkGwkWIFibGcWbBgSoliabbjNMHJMpoafsESwDy51gY6DQbLN744ZIMCMEL4fBQ/0?wx_fmt=png",
-        "out_trade_no" : "451069686473145725747205",
-        "fee_attr" : "negtive"
-      },
-      {
-        "timestamp" : 1660708052,
-        "bill_id" : "d464fc6220a10700BgAAC8TS0ORpBYVIYQ==",
-        "fee_type" : "CNY",
-        "trans_id" : "4200059225202208174888034711",
-        "fee" : 2152,
-        "current_state_type" : "neutral",
-        "title" : "杭州冠领餐饮管理有限公司",
-        "current_state" : "",
-        "bill_type" : 10,
-        "icon_url" : "https://mmbiz.qpic.cn/mmbiz_png/mOrK95e2Bsrz2dnRHDye74LYOXkGwkWIFibGcWbBgSoliabbjNMHJMpoafsESwDy51gY6DQbLN744ZIMCMEL4fBQ/0?wx_fmt=png",
-        "out_trade_no" : "451069541603130438451237",
-        "fee_attr" : "negtive"
-      },
-      {
-        "timestamp" : 1660536181,
-        "bill_id" : "75c5f96220a10700BgAAC8TS0ORpBYVIYQ==",
-        "fee_type" : "CNY",
-        "trans_id" : "4200057819202208151493011480",
-        "fee" : 1432,
-        "current_state_type" : "neutral",
-        "title" : "杭州冠领餐饮管理有限公司",
-        "current_state" : "",
-        "bill_type" : 10,
-        "icon_url" : "https://mmbiz.qpic.cn/mmbiz_png/mOrK95e2Bsrz2dnRHDye74LYOXkGwkWIFibGcWbBgSoliabbjNMHJMpoafsESwDy51gY6DQbLN744ZIMCMEL4fBQ/0?wx_fmt=png",
-        "out_trade_no" : "451069397427583673958471",
-        "fee_attr" : "negtive"
-      },
-      {
-        "timestamp" : 1660189795,
-        "bill_id" : "637cf46220a10700BgAAC8TS0ORpBYVIYQ==",
-        "fee_type" : "CNY",
-        "trans_id" : "4200001611202208119694521910",
-        "fee" : 2411,
-        "current_state_type" : "neutral",
-        "title" : "杭州冠领餐饮管理有限公司",
-        "current_state" : "",
-        "bill_type" : 10,
-        "icon_url" : "https://mmbiz.qpic.cn/mmbiz_png/mOrK95e2Bsrz2dnRHDye74LYOXkGwkWIFibGcWbBgSoliabbjNMHJMpoafsESwDy51gY6DQbLN744ZIMCMEL4fBQ/0?wx_fmt=png",
-        "out_trade_no" : "451069106857821605068872",
-        "fee_attr" : "negtive"
-      },
-      {
-        "timestamp" : 1660102856,
-        "bill_id" : "c828f36220a10700BgAAC8TS0ORpBYVIYQ==",
-        "fee_type" : "CNY",
-        "trans_id" : "4200059223202208101964619795",
-        "fee" : 2123,
-        "current_state_type" : "neutral",
-        "title" : "杭州冠领餐饮管理有限公司",
-        "current_state" : "",
-        "bill_type" : 10,
-        "icon_url" : "https://mmbiz.qpic.cn/mmbiz_png/mOrK95e2Bsrz2dnRHDye74LYOXkGwkWIFibGcWbBgSoliabbjNMHJMpoafsESwDy51gY6DQbLN744ZIMCMEL4fBQ/0?wx_fmt=png",
-        "out_trade_no" : "411069033927910470451232",
-        "fee_attr" : "negtive"
-      },
-      {
-        "timestamp" : 1660018482,
-        "bill_id" : "32dff16220a10700BgAAC8TS0ORpBYVIYQ==",
-        "fee_type" : "CNY",
-        "trans_id" : "4200057814202208094703322802",
-        "fee" : 2440,
-        "current_state_type" : "neutral",
-        "title" : "杭州冠领餐饮管理有限公司",
-        "current_state" : "",
-        "bill_type" : 10,
-        "icon_url" : "https://mmbiz.qpic.cn/mmbiz_png/mOrK95e2Bsrz2dnRHDye74LYOXkGwkWIFibGcWbBgSoliabbjNMHJMpoafsESwDy51gY6DQbLN744ZIMCMEL4fBQ/0?wx_fmt=png",
-        "out_trade_no" : "451068963150091583488121",
-        "fee_attr" : "negtive"
-      },
-      {
-        "timestamp" : 1659952255,
-        "bill_id" : "7fdcf06220a10700BgAAC8TS0ORpBYVIYQ==",
-        "fee_type" : "CNY",
-        "trans_id" : "4200059224202208085141638370",
-        "fee" : 2425,
-        "current_state_type" : "neutral",
-        "title" : "杭州冠领餐饮管理有限公司",
-        "current_state" : "",
-        "bill_type" : 10,
-        "icon_url" : "https://mmbiz.qpic.cn/mmbiz_png/mOrK95e2Bsrz2dnRHDye74LYOXkGwkWIFibGcWbBgSoliabbjNMHJMpoafsESwDy51gY6DQbLN744ZIMCMEL4fBQ/0?wx_fmt=png",
-        "out_trade_no" : "421068907594381747814430",
-        "fee_attr" : "negtive"
-      },
-      {
-        "timestamp" : 1659671734,
-        "bill_id" : "b694ec6220a10700BgAAC8TS0ORpBYVIYQ==",
-        "fee_type" : "CNY",
-        "trans_id" : "4200059219202208058336015645",
-        "fee" : 1763,
-        "current_state_type" : "neutral",
-        "title" : "杭州冠领餐饮管理有限公司",
-        "current_state" : "",
-        "bill_type" : 10,
-        "icon_url" : "https://mmbiz.qpic.cn/mmbiz_png/mOrK95e2Bsrz2dnRHDye74LYOXkGwkWIFibGcWbBgSoliabbjNMHJMpoafsESwDy51gY6DQbLN744ZIMCMEL4fBQ/0?wx_fmt=png",
-        "out_trade_no" : "451068672276553698508811",
-        "fee_attr" : "negtive"
-      },
-      {
-        "timestamp" : 1659585028,
-        "bill_id" : "0442eb6220a10700BgAAC8TS0ORpBYVIYQ==",
-        "fee_type" : "CNY",
-        "trans_id" : "4200057812202208046790134449",
-        "fee" : 2036,
-        "current_state_type" : "neutral",
-        "title" : "杭州冠领餐饮管理有限公司",
-        "current_state" : "",
-        "bill_type" : 10,
-        "icon_url" : "https://mmbiz.qpic.cn/mmbiz_png/mOrK95e2Bsrz2dnRHDye74LYOXkGwkWIFibGcWbBgSoliabbjNMHJMpoafsESwDy51gY6DQbLN744ZIMCMEL4fBQ/0?wx_fmt=png",
-        "out_trade_no" : "451068599542190178304077",
-        "fee_attr" : "negtive"
-      },
-      {
-        "timestamp" : 1659519621,
-        "bill_id" : "8542ea6220a10700BgAAC8TS0ORpBYVIYQ==",
-        "fee_type" : "CNY",
-        "trans_id" : "4200057816202208037450349249",
-        "fee" : 1691,
-        "current_state_type" : "neutral",
-        "title" : "杭州冠领餐饮管理有限公司",
-        "current_state" : "",
-        "bill_type" : 10,
-        "icon_url" : "https://mmbiz.qpic.cn/mmbiz_png/mOrK95e2Bsrz2dnRHDye74LYOXkGwkWIFibGcWbBgSoliabbjNMHJMpoafsESwDy51gY6DQbLN744ZIMCMEL4fBQ/0?wx_fmt=png",
-        "out_trade_no" : "451068544675063434444873",
-        "fee_attr" : "negtive"
-      },
-      {
-        "timestamp" : 1659498646,
-        "bill_id" : "96f0e96220a10700BgAAC8TS0ORpBYVIYQ==",
-        "fee_type" : "CNY",
-        "trans_id" : "4200059224202208039548269681",
-        "fee" : 1820,
-        "current_state_type" : "neutral",
-        "title" : "杭州冠领餐饮管理有限公司",
-        "current_state" : "",
-        "bill_type" : 10,
-        "icon_url" : "https://mmbiz.qpic.cn/mmbiz_png/mOrK95e2Bsrz2dnRHDye74LYOXkGwkWIFibGcWbBgSoliabbjNMHJMpoafsESwDy51gY6DQbLN744ZIMCMEL4fBQ/0?wx_fmt=png",
-        "out_trade_no" : "451068527079645246259207",
-        "fee_attr" : "negtive"
-      },
-      {
-        "timestamp" : 1659411957,
-        "bill_id" : "f59de86220a10700BgAAC8TS0ORpBYVIYQ==",
-        "fee_type" : "CNY",
-        "trans_id" : "4200057818202208022692714538",
-        "fee" : 2108,
-        "current_state_type" : "neutral",
-        "title" : "杭州冠领餐饮管理有限公司",
-        "current_state" : "",
-        "bill_type" : 10,
-        "icon_url" : "https://mmbiz.qpic.cn/mmbiz_png/mOrK95e2Bsrz2dnRHDye74LYOXkGwkWIFibGcWbBgSoliabbjNMHJMpoafsESwDy51gY6DQbLN744ZIMCMEL4fBQ/0?wx_fmt=png",
-        "out_trade_no" : "451068454359726931968025",
-        "fee_attr" : "negtive"
-      },
-      {
-        "timestamp" : 1659066567,
-        "bill_id" : "c758e36220a10700BgAAC8TS0ORpBYVIYQ==",
-        "fee_type" : "CNY",
-        "trans_id" : "4200059222202207290071855261",
-        "fee" : 2094,
-        "current_state_type" : "neutral",
-        "title" : "杭州冠领餐饮管理有限公司",
-        "current_state" : "",
-        "bill_type" : 10,
-        "icon_url" : "https://mmbiz.qpic.cn/mmbiz_png/mOrK95e2Bsrz2dnRHDye74LYOXkGwkWIFibGcWbBgSoliabbjNMHJMpoafsESwDy51gY6DQbLN744ZIMCMEL4fBQ/0?wx_fmt=png",
-        "out_trade_no" : "411068164625722779238425",
-        "fee_attr" : "negtive"
-      },
-      {
-        "timestamp" : 1659003690,
-        "bill_id" : "2a63e26220a10700BgAAC8TS0ORpBYVIYQ==",
-        "fee_type" : "CNY",
-        "trans_id" : "4200059222202207280568620110",
-        "fee" : 1734,
-        "current_state_type" : "neutral",
-        "title" : "杭州冠领餐饮管理有限公司",
-        "current_state" : "",
-        "bill_type" : 10,
-        "icon_url" : "https://mmbiz.qpic.cn/mmbiz_png/mOrK95e2Bsrz2dnRHDye74LYOXkGwkWIFibGcWbBgSoliabbjNMHJMpoafsESwDy51gY6DQbLN744ZIMCMEL4fBQ/0?wx_fmt=png",
-        "out_trade_no" : "451068111880556429312002",
-        "fee_attr" : "negtive"
-      },
-      {
-        "timestamp" : 1658980182,
-        "bill_id" : "5607e26220a10700BgAAC8TS0ORpBYVIYQ==",
-        "fee_type" : "CNY",
-        "trans_id" : "4200001444202207283654313738",
-        "fee" : 1720,
-        "current_state_type" : "neutral",
-        "title" : "杭州冠领餐饮管理有限公司",
-        "current_state" : "",
-        "bill_type" : 10,
-        "icon_url" : "https://mmbiz.qpic.cn/mmbiz_png/mOrK95e2Bsrz2dnRHDye74LYOXkGwkWIFibGcWbBgSoliabbjNMHJMpoafsESwDy51gY6DQbLN744ZIMCMEL4fBQ/0?wx_fmt=png",
-        "out_trade_no" : "411068092160881872076859",
-        "fee_attr" : "negtive"
-      },
-      {
-        "timestamp" : 1658916496,
-        "bill_id" : "900ee16220a10700BgAAC8TS0ORpBYVIYQ==",
-        "fee_type" : "CNY",
-        "trans_id" : "4200059218202207276884139737",
-        "fee" : 2065,
-        "current_state_type" : "neutral",
-        "title" : "杭州冠领餐饮管理有限公司",
-        "current_state" : "",
-        "bill_type" : 10,
-        "icon_url" : "https://mmbiz.qpic.cn/mmbiz_png/mOrK95e2Bsrz2dnRHDye74LYOXkGwkWIFibGcWbBgSoliabbjNMHJMpoafsESwDy51gY6DQbLN744ZIMCMEL4fBQ/0?wx_fmt=png",
-        "out_trade_no" : "411068038736945509171246",
-        "fee_attr" : "negtive"
-      },
-      {
-        "timestamp" : 1658894959,
-        "bill_id" : "6fbae06220a10700BgAAC8TS0ORpBYVIYQ==",
-        "fee_type" : "CNY",
-        "trans_id" : "4200059218202207279803655895",
-        "fee" : 2238,
-        "current_state_type" : "neutral",
-        "title" : "杭州冠领餐饮管理有限公司",
-        "current_state" : "",
-        "bill_type" : 10,
-        "icon_url" : "https://mmbiz.qpic.cn/mmbiz_png/mOrK95e2Bsrz2dnRHDye74LYOXkGwkWIFibGcWbBgSoliabbjNMHJMpoafsESwDy51gY6DQbLN744ZIMCMEL4fBQ/0?wx_fmt=png",
-        "out_trade_no" : "411068020670892045107263",
-        "fee_attr" : "negtive"
-      },
-      {
-        "timestamp" : 1658828160,
-        "bill_id" : "80b5df6220a10700BgAAC8TS0ORpBYVIYQ==",
-        "fee_type" : "CNY",
-        "trans_id" : "4200059221202207269734972745",
-        "fee" : 1763,
-        "current_state_type" : "neutral",
-        "title" : "杭州冠领餐饮管理有限公司",
-        "current_state" : "",
-        "bill_type" : 10,
-        "icon_url" : "https://mmbiz.qpic.cn/mmbiz_png/mOrK95e2Bsrz2dnRHDye74LYOXkGwkWIFibGcWbBgSoliabbjNMHJMpoafsESwDy51gY6DQbLN744ZIMCMEL4fBQ/0?wx_fmt=png",
-        "out_trade_no" : "411067964635035877376034",
-        "fee_attr" : "negtive"
-      },
-      {
-        "timestamp" : 1658807435,
-        "bill_id" : "8b64df6220a10700BgAAC8TS0ORpBYVIYQ==",
-        "fee_type" : "CNY",
-        "trans_id" : "4200059221202207269758371623",
-        "fee" : 2382,
-        "current_state_type" : "neutral",
-        "title" : "杭州冠领餐饮管理有限公司",
-        "current_state" : "",
-        "bill_type" : 10,
-        "icon_url" : "https://mmbiz.qpic.cn/mmbiz_png/mOrK95e2Bsrz2dnRHDye74LYOXkGwkWIFibGcWbBgSoliabbjNMHJMpoafsESwDy51gY6DQbLN744ZIMCMEL4fBQ/0?wx_fmt=png",
-        "out_trade_no" : "411067947249728857702472",
-        "fee_attr" : "negtive"
-      },
-      {
-        "timestamp" : 1658744643,
-        "bill_id" : "436fde6220a10700BgAAC8TS0ORpBYVIYQ==",
-        "fee_type" : "CNY",
-        "trans_id" : "4200059219202207253603537767",
-        "fee" : 1648,
-        "current_state_type" : "neutral",
-        "title" : "杭州冠领餐饮管理有限公司",
-        "current_state" : "",
-        "bill_type" : 10,
-        "icon_url" : "https://mmbiz.qpic.cn/mmbiz_png/mOrK95e2Bsrz2dnRHDye74LYOXkGwkWIFibGcWbBgSoliabbjNMHJMpoafsESwDy51gY6DQbLN744ZIMCMEL4fBQ/0?wx_fmt=png",
-        "out_trade_no" : "411067894576535977984001",
-        "fee_attr" : "negtive"
-      }
-    ],
-    "last_bill_id" : "436fde6220a10700BgAAC8TS0ORpBYVIYQ==",
-    "statistic" : [
-      {
-        "userroll_count" : 12,
-        "pay_fee" : 24149,
-        "fee_unit" : "￥",
-        "year" : 2022,
-        "month" : 8
-      },
-      {
-        "userroll_count" : 13,
-        "pay_fee" : 26742,
-        "fee_unit" : "￥",
-        "year" : 2022,
-        "month" : 7
-      }
-    ],
-    "last_bill_type" : 12,
-    "last_trans_id" : "4200059219202207253603537767",
-    "last_create_time" : 1658744643,
-    "cold_data_limit" : 1,
-    "total" : 20,
-    "ret_code" : 0,
-    "is_over" : false
-  }
