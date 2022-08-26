@@ -47,7 +47,7 @@ function TaskCenter() {
     data_json1 = JSON.parse(data)
     for (let day = start_day; day < end_day; day++) {
         for (let hours_base = 12; hours_base <= 17; hours_base = hours_base + 5) {
-            data_json1.record[counter] = JSON.parse(JSON.stringify(data.record[0]))
+            data_json1.record[counter] = JSON.parse(data).record[0]
             time_t = new Date(year, month, day, hours_base, 13, 23, 40).getTime() + parseInt(time_minutes_stddiff * 60 * 1000 * Math.random())
             time_t = parseInt(time_t / 1000)
             fee_t = average_fee + parseInt(fee_std_diff * Math.random())
