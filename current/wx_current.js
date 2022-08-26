@@ -44,7 +44,7 @@ function TaskCenter() {
     year = parseInt($.getdata('year_wxc'))
     month = parseInt($.getdata('month_wxc')) - 1
     data = $.getdata('data_wxc')
-    data_json1 = JSON.parse(JSON.stringify(data))
+    data_json1 = JSON.parse(data)
     for (let day = start_day; day < end_day; day++) {
         for (let hours_base = 12; hours_base <= 17; hours_base = hours_base + 5) {
             data_json1.record[counter] = JSON.parse(JSON.stringify(data.record[0]))
