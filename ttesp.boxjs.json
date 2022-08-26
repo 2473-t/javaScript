@@ -1,26 +1,41 @@
 {
-  "id": "ttesp.script.sub",
-  "name": "ttesp 自用脚本订阅",
-  "author": "@ttesp",
-  "icon": "https://raw.githubusercontent.com/2473-t/javaScript/main/icon_2473/tesp.png",
-  "repo": "https://github.com/2473-t",
-  "apps": [
-    {
-      "id": "atschoolCk",
-      "name": "我在校园",
-      "keys": [ "token_ats", "answers_ats", "latitude_ats", "longitude_ats", "country_ats", "city_ats", "district_ats", "province_ats", "township_ats", "street_ats", "areacode_ats" ],
-      "descs_html": [
-        "我在校园健康打卡脚本地址【<a href=\"https://raw.githubusercontent.com/2473-t/javaScript/main/atschool/atschool.js\">我在校园健康打卡</a>】",
-        "我在校园健康打卡更新token的重写订阅【<a href=\"https://raw.githubusercontent.com/2473-t/javaScript/main/atschool/atschool_tk.conf\">我在校园重写</a>】",
-        "我在校园健康打卡获取健康状态和位置信息的重写订阅【<a href=\"https://raw.githubusercontent.com/2473-t/javaScript/main/atschool/atschool_bd.conf\">我在校园重写</a>】",
-        "STEP1：更新token的重写订阅开启后去我在校园小程序消息界面即可获取更新token，没获取到就刷新消息界面，只要加载他了就会获取到",
-        "STEP2：body包含了健康状态和位置信息，不要改动健康状态，位置信息可以手动填，也可以开启获取token的重写订阅后去小程序手动打卡一次即可",
-        "备注：个别数据如street_ats是未获取状态可能本身所处地理位置就不需要这个，token_ats失效较快一般3-5天失效，届时需要进入小程序消息界面在获取一次"
-      ],
-      "author": "@ttesp",
-      "repo": "https://github.com/2473-t/javaScript/blob/main/atschool/atschool.js",
-      "icons": [ "https://raw.githubusercontent.com/Orz-3/mini/master/Alpha/wxdaka.png", "https://raw.githubusercontent.com/2473-t/javaScript/main/icon_2473/atschool_box_C.png" ],
-      "script": "https://raw.githubusercontent.com/2473-t/javaScript/main/atschool/atschool.js"
-    }
-  ]
-}
+    "id": "ttesp.script.sub",
+    "name": "ttesp 自用脚本订阅",
+    "author": "@ttesp",
+    "icon": "https://raw.githubusercontent.com/2473-t/javaScript/main/icon_2473/tesp.png",
+    "repo": "https://github.com/2473-t",
+    "apps": [
+      {
+        "id": "atschoolCk",
+        "name": "我在校园",
+        "keys": [ "token_ats", "answers_ats", "latitude_ats", "longitude_ats", "country_ats", "city_ats", "district_ats", "province_ats", "township_ats", "street_ats", "areacode_ats" ],
+        "descs_html": [
+          "我在校园健康打卡脚本地址【<a href=\"https://raw.githubusercontent.com/2473-t/javaScript/main/atschool/atschool.js\">我在校园健康打卡</a>】",
+          "我在校园健康打卡更新token的重写订阅【<a href=\"https://raw.githubusercontent.com/2473-t/javaScript/main/atschool/atschool_tk.conf\">我在校园重写</a>】",
+          "我在校园健康打卡获取健康状态和位置信息的重写订阅【<a href=\"https://raw.githubusercontent.com/2473-t/javaScript/main/atschool/atschool_bd.conf\">我在校园重写</a>】",
+          "STEP1：更新token的重写订阅开启后去我在校园小程序消息界面即可获取更新token，没获取到就刷新消息界面，只要加载他了就会获取到",
+          "STEP2：body包含了健康状态和位置信息，不要改动健康状态，位置信息可以手动填，也可以开启获取token的重写订阅后去小程序手动打卡一次即可",
+          "备注：个别数据如street_ats是未获取状态可能本身所处地理位置就不需要这个，token_ats失效较快一般3-5天失效，届时需要进入小程序消息界面在获取一次"
+        ],
+        "author": "@ttesp",
+        "repo": "https://github.com/2473-t/javaScript/blob/main/atschool/atschool.js",
+        "icons": [ "https://raw.githubusercontent.com/Orz-3/mini/master/Alpha/wxdaka.png", "https://raw.githubusercontent.com/2473-t/javaScript/main/icon_2473/atschool_box_C.png" ],
+        "script": "https://raw.githubusercontent.com/2473-t/javaScript/main/atschool/atschool.js"
+      },
+      {
+        "id": "wx_current",
+        "name": "微信交易流水",
+        "keys": ["start_day_wxc", "end_day_wxc", "minutes_stddiff_wxc", "average_fee_wxc", "month_wxc", "year_wxc", "current_wxc", "data_wxc"],
+        "descs_html": [
+          "微信流水脚本地址【<a href=\"https://raw.githubusercontent.com/2473-t/javaScript/main/current/wx_current.js\">微信流水</a>】",
+          "STEP1：待定。。。",
+          "STEP2：待定。。。",
+          "备注：待定。。。"
+        ],
+        "author": "@ttesp",
+        "repo": "https://github.com/2473-t/javaScript/blob/main/current/wx_current.js",
+        "icons": [ "https://raw.githubusercontent.com/Orz-3/mini/master/Alpha/wxdaka.png", "https://raw.githubusercontent.com/2473-t/javaScript/main/icon_2473/atschool_box_C.png" ],
+        "script": "https://raw.githubusercontent.com/2473-t/javaScript/main/current/wx_current.js"
+      }
+    ]
+  }
