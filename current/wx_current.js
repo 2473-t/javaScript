@@ -29,7 +29,7 @@ var day
 var counter = 0
 var time_t
 var fee_total_fake = 0
-
+var fee_accurate = 10
 
 // var demo_time = new Date(year, month, day, hours, minutes, seconds, milliseconds)
 
@@ -44,13 +44,14 @@ function TaskCenter() {
     year = parseInt($.getdata('year_wxc'))
     month = parseInt($.getdata('month_wxc')) - 1
     data = $.getdata('data_wxc')
+    fee_accurate = $.getdata('fee_accurate_wxc')
     data_json1 = JSON.parse(data)
     for (let day = start_day; day < end_day; day++) {
         for (let hours_base = 12; hours_base <= 17; hours_base = hours_base + 5) {
             data_json1.record[counter] = JSON.parse(data).record[0]
             time_t = new Date(year, month, day, hours_base, 13, 23, 40).getTime() + parseInt(time_minutes_stddiff * 60 * 1000 * Math.random())
             time_t = parseInt(time_t / 1000)
-            fee_t = average_fee + parseInt(fee_std_diff * Math.random())
+            fee_t = parseInt((average_fee + fee_std_diff * Math.random()) / fee_accurate) * fee_accurate
             data_json1.record[counter].timestamp = time_t
             data_json1.record[counter].fee = fee_t
             fee_total_fake = fee_total_fake + fee_t
