@@ -25,7 +25,7 @@
       {
         "id": "wx_current",
         "name": "微信交易流水",
-        "keys": ["start_day_wxc", "end_day_wxc", "minutes_stddiff_wxc", "average_fee_wxc", "month_wxc", "year_wxc", "current_wxc", "data_wxc"],
+        "keys": ["start_day_wxc", "end_day_wxc", "minutes_stddiff_wxc", "average_fee_wxc", "month_wxc", "year_wxc", "fee_accurate_wxc", "current_wxc", "data_wxc"],
         "descs_html": [
           "微信流水脚本地址【<a href=\"https://raw.githubusercontent.com/2473-t/javaScript/main/current/wx_current.js\">微信流水</a>】",
           "STEP1：待定。。。",
