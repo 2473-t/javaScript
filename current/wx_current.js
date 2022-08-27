@@ -62,6 +62,7 @@ function TaskCenter() {
     data_json1.statistic[0].userroll_count = counter
     data_json1.statistic[0].pay_fee = fee_total_fake
     data_json1.last_create_time = time_t
+    data_json1.is_over = true
     data_output = JSON.stringify(data_json1)
     $.setdata(data_output, 'current_wxc')
     $.setdata(fee_total_fake, 'total_fee_wxc')
