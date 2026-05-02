@@ -55,38 +55,65 @@ function parseConfig() {
         const srcPath = $environment.sourcePath || "";
         const hashIdx = srcPath.indexOf("#");
         if (hashIdx === -1) {
-            return { ...defaults, _error: "No config: missing URL hash params. worker_host is required." };
+            return { ...defaults, _error: "No config. Add #auto to read saved settings, or #worker_host=... for direct mode." };
         }
         const hash = srcPath.substring(hashIdx + 1);
         const params = {};
+        const bareKeys = [];
         hash.split("&").forEach(pair => {
             const eq = pair.indexOf("=");
             if (eq > 0) {
                 params[decodeURIComponent(pair.substring(0, eq))] = decodeURIComponent(pair.substring(eq + 1));
+            } else if (pair.length > 0) {
+                bareKeys.push(pair);
             }
         });
 
+        // Check for #auto mode: read saved config from WebUI
+        const isAuto = bareKeys.includes("auto") || params.auto !== undefined;
+        let saved = {};
+        if (isAuto) {
+            try {
+                const raw = $prefs.valueForKey("cf_opt_config");
+                if (raw) saved = JSON.parse(raw);
+            } catch (e) { /* ignore, use defaults */ }
+        }
+
+        // Merge: defaults < saved ($prefs) < hash params (overrides)
+        const useIpv6 = params.use_ipv6 !== undefined
+            ? params.use_ipv6 === "true"
+            : (saved.useIpv6 !== undefined ? saved.useIpv6 : defaults.useIpv6);
+        const warmup = params.warmup !== undefined
+            ? params.warmup !== "false"
+            : (saved.warmup !== undefined ? saved.warmup : defaults.warmup);
+        const notifyDetail = params.notify_detail !== undefined
+            ? params.notify_detail !== "false"
+            : (saved.notifyDetail !== undefined ? saved.notifyDetail : defaults.notifyDetail);
+
         const config = {
-            workerHost: params.worker_host || defaults.workerHost,
-            testCount: parseInt(params.test_count) || defaults.testCount,
-            batchSize: Math.min(parseInt(params.batch_size) || defaults.batchSize, 50),
-            maxLatency: parseInt(params.max_latency) || defaults.maxLatency,
-            latencyTimeout: parseInt(params.latency_timeout) || defaults.latencyTimeout,
-            dlCount: parseInt(params.dl_count) || defaults.dlCount,
-            dlBytes: Math.min(parseInt(params.dl_bytes) || defaults.dlBytes, 5 * 1024 * 1024),
-            dlTimeout: parseInt(params.dl_timeout) || defaults.dlTimeout,
-            dlConcurrency: Math.min(parseInt(params.dl_concurrency) || defaults.dlConcurrency, 5),
-            dlPort: parseInt(params.dl_port) || defaults.dlPort,
-            useIpv6: params.use_ipv6 === "true",
-            preferColo: (params.prefer_colo || "").toUpperCase().split(",").filter(Boolean),
-            speedtestPath: params.speedtest_path || defaults.speedtestPath,
-            warmup: params.warmup !== "false",
-            notifyDetail: params.notify_detail !== "false",
-            customIps: (params.custom_ips || "").split(",").map(s => s.trim()).filter(Boolean)
+            workerHost: params.worker_host || saved.workerHost || defaults.workerHost,
+            testCount: intParam(params.test_count, saved.testCount, defaults.testCount),
+            batchSize: Math.min(intParam(params.batch_size, saved.batchSize, defaults.batchSize), 50),
+            maxLatency: intParam(params.max_latency, saved.maxLatency, defaults.maxLatency),
+            latencyTimeout: intParam(params.latency_timeout, saved.latencyTimeout, defaults.latencyTimeout),
+            dlCount: intParam(params.dl_count, saved.dlCount, defaults.dlCount),
+            dlBytes: Math.min(intParam(params.dl_bytes, saved.dlBytes, defaults.dlBytes), 5 * 1024 * 1024),
+            dlTimeout: intParam(params.dl_timeout, saved.dlTimeout, defaults.dlTimeout),
+            dlConcurrency: Math.min(intParam(params.dl_concurrency, saved.dlConcurrency, defaults.dlConcurrency), 5),
+            dlPort: intParam(params.dl_port, saved.dlPort, defaults.dlPort),
+            useIpv6: useIpv6,
+            preferColo: (params.prefer_colo || saved.preferColo || "")
+                .toString().toUpperCase().split(",").filter(Boolean),
+            speedtestPath: params.speedtest_path || saved.speedtestPath || defaults.speedtestPath,
+            warmup: warmup,
+            notifyDetail: notifyDetail,
+            customIps: (params.custom_ips || saved.customIps || "")
+                .toString().split(",").map(function(s) { return s.trim(); }).filter(Boolean),
+            _source: isAuto ? "auto" : "hash"
         };
 
         if (!config.workerHost) {
-            return { ...config, _error: "worker_host is required. Add #worker_host=YOUR_HOST to script URL." };
+            return { ...config, _error: "worker_host required. Use WebUI or add #worker_host=YOUR_HOST to URL." };
         }
         if (config.dlCount <= 0 && config.testCount <= 0) {
             return { ...config, _error: "Both test_count and dl_count are 0. Nothing to test." };
@@ -96,6 +123,13 @@ function parseConfig() {
     } catch (e) {
         return { ...defaults, _error: "Config parse error: " + e.message };
     }
+}
+
+// 从 hash params / saved / defaults 中取第一个有效数值
+function intParam(hashVal, savedVal, defaultVal) {
+    if (hashVal !== undefined && hashVal !== "") return parseInt(hashVal) || defaultVal;
+    if (savedVal !== undefined && savedVal !== "") return parseInt(savedVal) || defaultVal;
+    return defaultVal;
 }
 
 /*******************************
@@ -1035,7 +1069,8 @@ async function main() {
         + " dl_count=" + config.dlCount
         + " dl_bytes=" + (config.dlBytes / 1024) + "KB"
         + " ipv6=" + config.useIpv6
-+ (config.customIps.length > 0 ? " custom_ips=" + config.customIps.length + " sources" : ""));
++ (config.customIps.length > 0 ? " custom_ips=" + config.customIps.length + " sources" : "")
++ " src=" + (config._source || "hash"));
 
     // Warmup
     if (config.warmup) {
