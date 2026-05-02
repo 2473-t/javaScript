@@ -313,8 +313,8 @@ function renderSubCard(subCfg) {
         + '<div class="row"><span class="lbl">端口</span><input type="number" id="s-port" value="' + cfg.port + '" min="1" max="65535"></div>'
         + '<div class="row"><span class="lbl">节点数</span><input type="number" id="s-nodecount" value="' + cfg.nodeCount + '" min="1" max="10"></div>'
         + '</div>'
-        + '<button class="btn btn-sub" onclick="doSubSave()">保存订阅参数</button>'
-        + '<button class="btn btn-subgen" onclick="doSubGen()">生成订阅</button>'
+        + '<button type="button" class="btn btn-sub" onclick="doSubSave()">保存订阅参数</button>'
+        + '<button type="button" class="btn btn-subgen" onclick="doSubGen()">生成订阅</button>'
         + '<div id="sub-result" style="display:none;margin-top:8px"></div>';
 }
 
@@ -432,8 +432,8 @@ renderStatusBadge(cfg) +
 
 // ── 按钮行 ──
 '<div class="btn-row">' +
-'<button class="btn btn-save" onclick="doSave()">保存配置</button>' +
-'<button class="btn btn-run" onclick="doRun()">运行优选</button>' +
+'<button type="button" class="btn btn-save" onclick="doSave()">保存配置</button>' +
+'<button type="button" class="btn btn-run" onclick="doRun()">运行优选</button>' +
 '</div>' +
 
 // ── 上次结果 ──
