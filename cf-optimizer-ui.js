@@ -3,7 +3,7 @@
  *
  * ========== 部署 ==========
  * [rewrite_local]
- * ^http:\/\/cfui\.com\/?(\/.*)?$ url script-response-body https://YOUR_HOST/cf-optimizer-ui.js
+ * ^http:\/\/cfui\.com(\/.*)?$ url script-response-body https://YOUR_HOST/cf-optimizer-ui.js
  *
  * ========== 使用 ==========
  * Safari 打开: http://cfui.com → 显示配置页面 → 修改参数 → 保存
