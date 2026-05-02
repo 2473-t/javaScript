@@ -158,21 +158,15 @@ function saveToHistory(config) {
     } catch (e) {}
 }
 
-// ── 处理保存请求 (GET query params) ──
+// ── 处理保存请求 (POST JSON body) ──
 function handleSave() {
     try {
-        var url = reqURL();
-        var qIdx = url.indexOf("?data=");
-        if (qIdx < 0) {
-            return { ok: false, error: "No data in URL" };
+        var body = "";
+        try { body = $request.body || ""; } catch (e) {}
+        if (!body) {
+            return { ok: false, error: "No data in request" };
         }
-        var raw = "";
-        try {
-            raw = decodeURIComponent(url.substring(qIdx + 6));
-        } catch (e) {
-            return { ok: false, error: "Invalid URL encoding" };
-        }
-        var data = JSON.parse(raw);
+        var data = JSON.parse(body);
 
         if (!data || typeof data !== "object") {
             return { ok: false, error: "Invalid data" };
@@ -216,11 +210,10 @@ function handleSave() {
 // ── 处理订阅参数保存 ──
 function handleSubSave() {
     try {
-        var url = reqURL();
-        var qIdx = url.indexOf("?data=");
-        if (qIdx < 0) return { ok: false, error: "No data" };
-        var raw = decodeURIComponent(url.substring(qIdx + 6));
-        var data = JSON.parse(raw);
+        var body = "";
+        try { body = $request.body || ""; } catch (e) {}
+        if (!body) return { ok: false, error: "No data" };
+        var data = JSON.parse(body);
 
         var config = {};
         var keys = Object.keys(SUB_DEFAULTS);
@@ -481,15 +474,23 @@ renderHistoryCard(history) +
 'function doSave(){' +
 '  var data=collect();' +
 '  if(!data.workerHost){toast("请填写 Worker 域名");return}' +
-'  var json=encodeURIComponent(JSON.stringify(data));' +
-'  window.location.href="/save?data="+json;' +
+'  fetch("/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)})' +
+'  .then(function(r){return r.json()})' +
+'  .then(function(res){' +
+'    if(res.ok){toast("已保存");setTimeout(function(){location.reload()},600)}' +
+'    else{toast("错误: "+(res.error||""))}' +
+'  }).catch(function(e){toast("请求失败: "+e.message)})' +
 '}' +
 'function doRun(){' +
 '  var data=collect();' +
 '  if(!data.workerHost){toast("请填写 Worker 域名");return}' +
 '  data._run=true;' +
-'  var json=encodeURIComponent(JSON.stringify(data));' +
-'  window.location.href="/save?data="+json;' +
+'  fetch("/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)})' +
+'  .then(function(r){return r.json()})' +
+'  .then(function(res){' +
+'    if(res.ok){toast("已标记运行，请在 QX 中执行 CF优选")}' +
+'    else{toast("错误: "+(res.error||""))}' +
+'  }).catch(function(e){toast("请求失败: "+e.message)})' +
 '}' +
 'function restoreConfig(jsonStr){' +
 '  try{' +
@@ -544,8 +545,12 @@ renderHistoryCard(history) +
 'function doSubSave(){' +
 '  var data=collectSub();' +
 '  if(!data.uuid){toast("请填写 UUID/密码");return}' +
-'  var json=encodeURIComponent(JSON.stringify(data));' +
-'  window.location.href="/sub-save?data="+json;' +
+'  fetch("/sub-save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)})' +
+'  .then(function(r){return r.json()})' +
+'  .then(function(res){' +
+'    if(res.ok){toast("订阅参数已保存")}' +
+'    else{toast("错误: "+(res.error||""))}' +
+'  }).catch(function(e){toast("请求失败: "+e.message)})' +
 '}' +
 'function doSubGen(){' +
 '  var data=collectSub();' +
@@ -649,30 +654,33 @@ urls +
 // ═══════════════════════════════════════
 
 var url = reqURL();
+var method = "";
+try { method = ($request.method || "").toUpperCase(); } catch (e) {}
 
-// 检测不同模式 — 用路径匹配, 兼容完整 URL 和纯路径
+// 检测不同模式
 function urlHasPath(url, path) {
     return url.indexOf("cfui.com" + path) >= 0 || url.indexOf(path) >= 0;
 }
 
+var isSave = urlHasPath(url, "/save") && method === "POST";
+var isSubSave = urlHasPath(url, "/sub-save") && method === "POST";
+// 订阅生成使用 GET query params (页面跳转)
 var hasData = url.indexOf("?data=") >= 0;
-var isSave = urlHasPath(url, "/save") && hasData;
-var isSubSave = urlHasPath(url, "/sub-save") && hasData;
 var isSubGen = urlHasPath(url, "/sub-gen") && hasData;
 
 if (isSave) {
     var result = handleSave();
     $done({
         statusCode: result.ok ? 200 : 400,
-        headers: NO_CACHE,
-        body: result.ok ? renderSaved(result.isRun) : ("<h2>Error</h2><p>" + esc(result.error) + "</p>")
+        headers: { "Content-Type": "application/json; charset=utf-8", "Access-Control-Allow-Origin": "*" },
+        body: JSON.stringify(result)
     });
 } else if (isSubSave) {
     var subResult = handleSubSave();
     $done({
         statusCode: subResult.ok ? 200 : 400,
-        headers: NO_CACHE,
-        body: subResult.ok ? renderSaved(false) : ("<h2>Error</h2><p>" + esc(subResult.error) + "</p>")
+        headers: { "Content-Type": "application/json; charset=utf-8", "Access-Control-Allow-Origin": "*" },
+        body: JSON.stringify(subResult)
     });
 } else if (isSubGen) {
     // 解析订阅参数 + 读取优选结果
