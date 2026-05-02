@@ -3,10 +3,11 @@
  *
  * ========== 部署 ==========
  * [rewrite_local]
- * ^http:\/\/cf-opt\.local(\/.*)?$ url script-response-body https://YOUR_HOST/cf-optimizer-ui.js
+ * ^http:\/\/cfui\.com\/?(\/.*)?$ url script-response-body https://YOUR_HOST/cf-optimizer-ui.js
  *
  * ========== 使用 ==========
- * Safari 打开: http://cf-opt.local → 显示配置页面 → 修改参数 → 保存
+ * Safari 打开: http://cfui.com → 显示配置页面
+ * (原理同 BoxJS: QX rewrite 本地拦截)
  *******************************/
 
 const CONFIG_KEY = "cf_opt_config";
@@ -209,7 +210,7 @@ function doSave(){
     if (!data.workerHost){ toast("请填写 Worker 域名"); return; }
     var json = encodeURIComponent(JSON.stringify(data));
     // Navigate to internal save URL, QX rewrite catches it
-    window.location.href = "http://cf-opt.local/save#" + json;
+    window.location.href = "/save#" + json;
 }
 
 // Auto-save hint: tapping outside fields on iOS
@@ -238,7 +239,7 @@ p{color:#8e8e93;font-size:14px}
 
 const url = $environment.sourcePath || "";
 // /save → 保存配置; 其他路径 → 显示页面
-const isSave = url.indexOf("cf-opt.local/save") >= 0;
+const isSave = url.indexOf("cfui.com/save") >= 0;
 
 if (isSave) {
     const result = handleSave();
