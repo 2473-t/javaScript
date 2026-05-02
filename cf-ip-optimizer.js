@@ -23,6 +23,8 @@
  * prefer_colo     - 优先地区码 (逗号分隔), 如 HKG,NRT
  * speedtest_path  - Worker 测速路径, 默认 /speedtest
  * warmup          - 是否热身, 默认 true
+ * custom_ips      - 手动指定 IP/CIDR,逗号分隔 (类似 cfst -ip 参数, 设置后跳过随机采样)
+ *                   例: custom_ips=1.1.1.1,104.16.0.0/15,2606:4700:a8::/48
  *******************************/
 
 /*******************************
@@ -45,7 +47,8 @@ function parseConfig() {
         preferColo: [],
         speedtestPath: "/speedtest",
         warmup: true,
-        notifyDetail: true
+        notifyDetail: true,
+        customIps: []
     };
 
     try {
@@ -78,7 +81,8 @@ function parseConfig() {
             preferColo: (params.prefer_colo || "").toUpperCase().split(",").filter(Boolean),
             speedtestPath: params.speedtest_path || defaults.speedtestPath,
             warmup: params.warmup !== "false",
-            notifyDetail: params.notify_detail !== "false"
+            notifyDetail: params.notify_detail !== "false",
+            customIps: (params.custom_ips || "").split(",").map(s => s.trim()).filter(Boolean)
         };
 
         if (!config.workerHost) {
@@ -330,6 +334,59 @@ function sampleIPv6FromRange(cidr, count, seed) {
  * 4. IP 池生成
  *******************************/
 
+// 展开用户手动指定的 IP/CIDR 列表
+function expandCustomIPs(items, targetCount, seed) {
+    const ips = [];
+    const seen = new Set();
+
+    for (const item of items) {
+        if (!item) continue;
+
+        // 判断是 CIDR 还是单 IP
+        if (item.indexOf("/") >= 0) {
+            // CIDR 格式: 支持 IPv4 和 IPv6
+            const [baseIP, prefixStr] = item.split("/");
+            const prefix = parseInt(prefixStr);
+
+            if (baseIP.indexOf(":") >= 0) {
+                // IPv6 CIDR
+                const sampleCount = Math.min(Math.ceil(targetCount / items.length), 10);
+                const sampleIPs = sampleIPv6FromRange(item, sampleCount, seed + ":custom");
+                for (const ip of sampleIPs) {
+                    if (!seen.has(ip)) {
+                        seen.add(ip);
+                        ips.push(ip);
+                    }
+                }
+            } else {
+                // IPv4 CIDR
+                const totalSize = Math.pow(2, 32 - prefix);
+                const count = Math.min(
+                    Math.ceil(targetCount / items.length),
+                    50,
+                    totalSize - 2
+                );
+                const sampleIPs = sampleFromRange(item, count, seed + ":custom");
+                for (const ip of sampleIPs) {
+                    if (!seen.has(ip)) {
+                        seen.add(ip);
+                        ips.push(ip);
+                    }
+                }
+            }
+        } else {
+            // 单个 IP
+            const trimmed = item.trim();
+            if ((trimmed.indexOf(":") >= 0 ? true : isValidIPv4(trimmed)) && !seen.has(trimmed)) {
+                seen.add(trimmed);
+                ips.push(trimmed);
+            }
+        }
+    }
+
+    return ips;
+}
+
 function parseCIDR(cidr) {
     const [ip, prefix] = cidr.split("/");
     return { base: ipToInt(ip), prefix: parseInt(prefix) };
@@ -360,6 +417,21 @@ function sampleFromRange(cidr, count, seed) {
 
 function generateIPPool(config, historyIPs) {
     const seed = new Date().toISOString().split("T")[0]; // daily deterministic seed
+
+    // If custom IPs are specified, use them directly (skip random sampling)
+    if (config.customIps.length > 0) {
+        const customPool = expandCustomIPs(config.customIps, config.testCount, seed);
+        // Merge with history IPs (dedup)
+        const historySet = new Set(historyIPs.slice(0, 10));
+        const merged = [...customPool];
+        for (const ip of historyIPs.slice(0, 10)) {
+            if (!merged.includes(ip)) merged.unshift(ip);
+        }
+        console.log("[CFOpt] IP pool: " + merged.length + " candidates (custom, "
+            + config.customIps.length + " sources)");
+        return merged.slice(0, config.testCount || merged.length);
+    }
+
     const candidates = [];
 
     // 1. Add history IPs (warm start)
@@ -962,7 +1034,8 @@ async function main() {
         + " max_lat=" + config.maxLatency + "ms"
         + " dl_count=" + config.dlCount
         + " dl_bytes=" + (config.dlBytes / 1024) + "KB"
-        + " ipv6=" + config.useIpv6);
+        + " ipv6=" + config.useIpv6
++ (config.customIps.length > 0 ? " custom_ips=" + config.customIps.length + " sources" : ""));
 
     // Warmup
     if (config.warmup) {
