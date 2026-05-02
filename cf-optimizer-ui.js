@@ -1,9 +1,9 @@
 /*******************************
- * CF IP Optimizer — Web 配置面板 (script-response-body version)
+ * CF IP Optimizer — Web 配置面板 (script-analyze-echo-response version)
  *
  * ========== 部署 ==========
  * [rewrite_local]
- * ^http:\/\/cfui\.com(\/.*)?$ url script-response-body https://YOUR_HOST/cf-optimizer-ui.js
+ * ^http:\/\/cfui\.com(\/.*)?$ url script-analyze-echo-response https://YOUR_HOST/cf-optimizer-ui.js
  *
  * ========== 使用 ==========
  * Safari 打开: http://cfui.com → 显示配置页面 → 修改参数 → 保存
@@ -61,8 +61,7 @@ const NO_CACHE = {
     "Content-Type": "text/html; charset=utf-8",
     "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
     "Pragma": "no-cache",
-    "Expires": "0",
-    "Content-Security-Policy": "default-src * data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' data: blob:; style-src * 'unsafe-inline' data: blob:"
+    "Expires": "0"
 };
 
 function esc(s) {
@@ -457,7 +456,6 @@ renderHistoryCard(history) +
 
 '<script>' +
 'function $(id){return document.getElementById(id)}' +
-'function nav(path){var base=(location&&location.origin)?location.origin:"http://cfui.com";window.location.href=base+path}' +
 'function toast(m){var t=$("toast");t.textContent=m;t.style.display="block";setTimeout(function(){t.style.display="none"},1500)}' +
 'function collect(){' +
 '  function b(id){return $(id).classList.contains("on")}' +
@@ -484,14 +482,14 @@ renderHistoryCard(history) +
 '  var data=collect();' +
 '  if(!data.workerHost){toast("请填写 Worker 域名");return}' +
 '  var json=encodeURIComponent(JSON.stringify(data));' +
-'  nav("/save?data="+json);' +
+'  window.location.href="/save?data="+json;' +
 '}' +
 'function doRun(){' +
 '  var data=collect();' +
 '  if(!data.workerHost){toast("请填写 Worker 域名");return}' +
 '  data._run=true;' +
 '  var json=encodeURIComponent(JSON.stringify(data));' +
-'  nav("/save?data="+json);' +
+'  window.location.href="/save?data="+json;' +
 '}' +
 'function restoreConfig(jsonStr){' +
 '  try{' +
@@ -547,7 +545,7 @@ renderHistoryCard(history) +
 '  var data=collectSub();' +
 '  if(!data.uuid){toast("请填写 UUID/密码");return}' +
 '  var json=encodeURIComponent(JSON.stringify(data));' +
-'  nav("/sub-save?data="+json);' +
+'  window.location.href="/sub-save?data="+json;' +
 '}' +
 'function doSubGen(){' +
 '  var data=collectSub();' +
@@ -556,7 +554,7 @@ renderHistoryCard(history) +
 '  // 先保存订阅参数，再生成订阅链接' +
 '  // 订阅链接在服务端通过读取 cf_opt_result 生成' +
 '  var json=encodeURIComponent(JSON.stringify(data));' +
-'  nav("/sub-gen?data="+json);' +
+'  window.location.href="/sub-gen?data="+json;' +
 '}' +
 '</script>' +
 '</body></html>';
@@ -636,7 +634,6 @@ urls +
 '<div id="toast"></div>' +
 '<script>' +
 'function $(id){return document.getElementById(id)}' +
-'function nav(path){var base=(location&&location.origin)?location.origin:"http://cfui.com";window.location.href=base+path}' +
 'function toast(m){var t=$("toast");t.textContent=m;t.style.display="block";setTimeout(function(){t.style.display="none"},1500)}' +
 'function copySubUrl(el){' +
 '  var txt=el.textContent;' +
@@ -648,7 +645,7 @@ urls +
 }
 
 // ═══════════════════════════════════════
-// 主入口 — script-response-body API
+// 主入口 — script-analyze-echo-response API
 // ═══════════════════════════════════════
 
 var url = reqURL();
@@ -666,14 +663,14 @@ var isSubGen = urlHasPath(url, "/sub-gen") && hasData;
 if (isSave) {
     var result = handleSave();
     $done({
-        status: result.ok ? 200 : 400,
+        statusCode: result.ok ? 200 : 400,
         headers: NO_CACHE,
         body: result.ok ? renderSaved(result.isRun) : ("<h2>Error</h2><p>" + esc(result.error) + "</p>")
     });
 } else if (isSubSave) {
     var subResult = handleSubSave();
     $done({
-        status: subResult.ok ? 200 : 400,
+        statusCode: subResult.ok ? 200 : 400,
         headers: NO_CACHE,
         body: subResult.ok ? renderSaved(false) : ("<h2>Error</h2><p>" + esc(subResult.error) + "</p>")
     });
@@ -696,13 +693,13 @@ if (isSave) {
     }
     var results = loadResults();
     $done({
-        status: 200,
+        statusCode: 200,
         headers: NO_CACHE,
         body: renderSubGenPage(subCfg, results)
     });
 } else {
     $done({
-        status: 200,
+        statusCode: 200,
         headers: NO_CACHE,
         body: renderPage()
     });
