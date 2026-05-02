@@ -61,7 +61,8 @@ const NO_CACHE = {
     "Content-Type": "text/html; charset=utf-8",
     "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
     "Pragma": "no-cache",
-    "Expires": "0"
+    "Expires": "0",
+    "Content-Security-Policy": "default-src * data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' data: blob:; style-src * 'unsafe-inline' data: blob:"
 };
 
 function esc(s) {
@@ -456,6 +457,7 @@ renderHistoryCard(history) +
 
 '<script>' +
 'function $(id){return document.getElementById(id)}' +
+'function nav(path){var base=(location&&location.origin)?location.origin:"http://cfui.com";window.location.href=base+path}' +
 'function toast(m){var t=$("toast");t.textContent=m;t.style.display="block";setTimeout(function(){t.style.display="none"},1500)}' +
 'function collect(){' +
 '  function b(id){return $(id).classList.contains("on")}' +
@@ -482,14 +484,14 @@ renderHistoryCard(history) +
 '  var data=collect();' +
 '  if(!data.workerHost){toast("请填写 Worker 域名");return}' +
 '  var json=encodeURIComponent(JSON.stringify(data));' +
-'  window.location.href="/save?data="+json;' +
+'  nav("/save?data="+json);' +
 '}' +
 'function doRun(){' +
 '  var data=collect();' +
 '  if(!data.workerHost){toast("请填写 Worker 域名");return}' +
 '  data._run=true;' +
 '  var json=encodeURIComponent(JSON.stringify(data));' +
-'  window.location.href="/save?data="+json;' +
+'  nav("/save?data="+json);' +
 '}' +
 'function restoreConfig(jsonStr){' +
 '  try{' +
@@ -545,7 +547,7 @@ renderHistoryCard(history) +
 '  var data=collectSub();' +
 '  if(!data.uuid){toast("请填写 UUID/密码");return}' +
 '  var json=encodeURIComponent(JSON.stringify(data));' +
-'  window.location.href="/sub-save?data="+json;' +
+'  nav("/sub-save?data="+json);' +
 '}' +
 'function doSubGen(){' +
 '  var data=collectSub();' +
@@ -554,7 +556,7 @@ renderHistoryCard(history) +
 '  // 先保存订阅参数，再生成订阅链接' +
 '  // 订阅链接在服务端通过读取 cf_opt_result 生成' +
 '  var json=encodeURIComponent(JSON.stringify(data));' +
-'  window.location.href="/sub-gen?data="+json;' +
+'  nav("/sub-gen?data="+json);' +
 '}' +
 '</script>' +
 '</body></html>';
@@ -634,6 +636,7 @@ urls +
 '<div id="toast"></div>' +
 '<script>' +
 'function $(id){return document.getElementById(id)}' +
+'function nav(path){var base=(location&&location.origin)?location.origin:"http://cfui.com";window.location.href=base+path}' +
 'function toast(m){var t=$("toast");t.textContent=m;t.style.display="block";setTimeout(function(){t.style.display="none"},1500)}' +
 'function copySubUrl(el){' +
 '  var txt=el.textContent;' +
