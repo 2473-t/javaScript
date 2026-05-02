@@ -1,14 +1,12 @@
 /*******************************
  * CF IP Optimizer — Web 配置面板
  *
- * 部署:
- *   1. [task_local] 添加:
- *      event-interaction https://YOUR_HOST/cf-optimizer-ui.js, tag=CF优选配置, enabled=true
+ * ========== 部署 ==========
+ * [rewrite_local]
+ * ^http:\/\/cf-opt\.local(\/.*)?$ url script-response-body https://YOUR_HOST/cf-optimizer-ui.js
  *
- *   2. [rewrite_local] 添加 (处理保存请求):
- *      http://cf-opt.local/ url script-response-body https://YOUR_HOST/cf-optimizer-ui.js
- *
- * 使用: 在 QX 中点击 "CF优选配置" 任务 → 修改参数 → 保存
+ * ========== 使用 ==========
+ * Safari 打开: http://cf-opt.local → 显示配置页面 → 修改参数 → 保存
  *******************************/
 
 const CONFIG_KEY = "cf_opt_config";
@@ -239,9 +237,10 @@ p{color:#8e8e93;font-size:14px}
 // ── 主入口 ──
 
 const url = $environment.sourcePath || "";
-const isCfgLocal = url.indexOf("cf-opt.local") >= 0;
+// /save → 保存配置; 其他路径 → 显示页面
+const isSave = url.indexOf("cf-opt.local/save") >= 0;
 
-if (isCfgLocal) {
+if (isSave) {
     const result = handleSave();
     $done({
         response: {
