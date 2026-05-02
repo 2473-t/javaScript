@@ -830,7 +830,7 @@ async function phase2DownloadTest(candidates, config, deadline) {
     for (let i = 0; i < toTest.length && Date.now() < deadline; i += config.dlConcurrency) {
         const batch = toTest.slice(i, i + config.dlConcurrency);
         const batchResults = await Promise.all(
-            batch.map(ip => measureDownloadSpeed(ip, config))
+            batch.map(ip => measureDownloadSpeed(ip.ip, config))
         );
 
         for (const r of batchResults) {
