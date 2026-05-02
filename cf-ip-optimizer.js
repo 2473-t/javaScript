@@ -6,7 +6,7 @@
  *
  * ========== 部署方式 ==========
  * [task_local]
- * cron 13 *\/4 * * * script-path=https://YOUR_HOST/cf-ip-optimizer.js#worker_host=mydomain&max_latency=300&dl_count=15, tag=CF优选, enabled=true
+ * cron 13 *\/4 * * * script-path=https://YOUR_HOST/cf-ip-optimizer.js#worker_host=mydomaincom&max_latency=300&dl_count=15, tag=CF优选, enabled=true
  *
  * ========== 参数说明 (URL hash) ==========
  * worker_host     - 必填, CF Worker 域名 (用于下载测速)
@@ -18,6 +18,7 @@
  * dl_bytes        - 下载测试字节数, 默认 524288 (512KB)
  * dl_timeout      - 下载超时(ms), 默认 10000
  * dl_concurrency  - 下载并发数, 默认 2
+ * dl_port         - 下载测速端口, 默认 80 (如遇到 HTTPS 错误, 检查 Worker 域名是否关闭 Always Use HTTPS)
  * use_ipv6        - 是否测试 IPv6, 默认 false
  * prefer_colo     - 优先地区码 (逗号分隔), 如 HKG,NRT
  * speedtest_path  - Worker 测速路径, 默认 /speedtest
@@ -39,6 +40,7 @@ function parseConfig() {
         dlBytes: 524288,
         dlTimeout: 10000,
         dlConcurrency: 2,
+        dlPort: 80,
         useIpv6: false,
         preferColo: [],
         speedtestPath: "/speedtest",
@@ -71,6 +73,7 @@ function parseConfig() {
             dlBytes: Math.min(parseInt(params.dl_bytes) || defaults.dlBytes, 5 * 1024 * 1024),
             dlTimeout: parseInt(params.dl_timeout) || defaults.dlTimeout,
             dlConcurrency: Math.min(parseInt(params.dl_concurrency) || defaults.dlConcurrency, 5),
+            dlPort: parseInt(params.dl_port) || defaults.dlPort,
             useIpv6: params.use_ipv6 === "true",
             preferColo: (params.prefer_colo || "").toUpperCase().split(",").filter(Boolean),
             speedtestPath: params.speedtest_path || defaults.speedtestPath,
@@ -620,7 +623,7 @@ function filterAndRankPhase1(results, config) {
 
 function measureDownloadSpeed(ip, config) {
     const startTime = Date.now();
-    const url = toURL(ip, config.speedtestPath + "?bytes=" + config.dlBytes);
+    const url = toURL(ip, ":" + config.dlPort + config.speedtestPath + "?bytes=" + config.dlBytes);
 
     return $task.fetch({
         url: url,
@@ -638,6 +641,33 @@ function measureDownloadSpeed(ip, config) {
     }).then(response => {
         const elapsed = (Date.now() - startTime) / 1000; // seconds
         const bodyLen = response.body ? response.body.length : 0;
+
+        // Check response body for CF error pages
+        const body = response.body || "";
+
+        if (response.statusCode === 400 && body.indexOf("plain HTTP request was sent to HTTPS port") >= 0) {
+            return {
+                ip: ip,
+                speed: 0,
+                bytes: 0,
+                elapsed: elapsed,
+                status: "https_required",
+                error: "CF requires HTTPS: disable 'Always Use HTTPS' on Worker domain or add transform rule for /speedtest"
+            };
+        }
+
+        if (response.statusCode === 301 || response.statusCode === 302 || response.statusCode === 307 || response.statusCode === 308) {
+            const loc = response.headers ? (response.headers.Location || response.headers.location || "") : "";
+            return {
+                ip: ip,
+                speed: 0,
+                bytes: bodyLen,
+                elapsed: elapsed,
+                status: "redirect",
+                code: response.statusCode,
+                redirect: loc
+            };
+        }
 
         if (response.statusCode !== 200) {
             return {
@@ -705,6 +735,12 @@ async function phase2DownloadTest(candidates, config, deadline) {
             const ok = batchResults.filter(r => r.status === "ok");
             console.log("[CFOpt] DL batch " + (i / config.dlConcurrency + 1) + ": "
                 + ok.map(r => r.ip + "=" + r.speed.toFixed(1) + "MB/s").join(", "));
+        } else if (batchResults.some(r => r.status === "https_required")) {
+            console.log("[CFOpt] DL batch " + (i / config.dlConcurrency + 1)
+                + ": ALL require HTTPS - disable 'Always Use HTTPS' on Worker domain");
+        } else if (batchResults.some(r => r.status === "redirect")) {
+            console.log("[CFOpt] DL batch " + (i / config.dlConcurrency + 1)
+                + ": ALL redirected (HTTP→HTTPS) - check CF Dashboard settings");
         }
 
         // Small delay between pairs
@@ -712,6 +748,13 @@ async function phase2DownloadTest(candidates, config, deadline) {
             await sleep(300);
         }
     }
+
+    // Diagnose common failure patterns
+    const statuses = {};
+    for (const r of results) {
+        statuses[r.status] = (statuses[r.status] || 0) + 1;
+    }
+    console.log("[CFOpt] Phase 2 status summary: " + JSON.stringify(statuses));
 
     return results;
 }
@@ -846,7 +889,10 @@ function notifyUser(ranked, config, stats) {
     }
 
     const best = ranked[0];
-    const tag = stats.hasSpeed ? "" : "[仅延迟] ";
+    let tag = stats.hasSpeed ? "" : "[仅延迟] ";
+    if (stats.httpsBlocked > 0 && stats.httpsBlocked >= stats.dlTested * 0.8) {
+        tag = "[需关闭HTTPS] ";
+    }
     const title = "CF优选" + tag + "完成";
 
     const coloTag = best.colo ? best.colo + " " : "";
@@ -866,6 +912,12 @@ function notifyUser(ranked, config, stats) {
         }).join("\n");
     } else {
         body = "最优: " + best.ip;
+    }
+
+    // Append diagnostic advice when HTTPS is blocking
+    if (stats.httpsBlocked > 0 && stats.httpsBlocked >= stats.dlTested * 0.8) {
+        body += "\n\n⚠ 测速Worker需关闭Always Use HTTPS";
+        body += "\nCF Dashboard → SSL/TLS → Edge Certificates → Always Use HTTPS → OFF";
     }
 
     $notify(title, subtitle, body);
@@ -960,12 +1012,23 @@ async function main() {
     const hasSpeed = phase2Results.some(r => r.status === "ok" && r.speed > 0);
     const ranked = computeFinalRanking(phase1Ranked, phase2Results, config);
 
+    // Phase 2 diagnostics
+    const dlErrors = {};
+    for (const r of phase2Results) {
+        if (r.status !== "ok") {
+            dlErrors[r.status] = (dlErrors[r.status] || 0) + 1;
+        }
+    }
+    const httpsBlocked = dlErrors["https_required"] || 0;
+    const redirected = dlErrors["redirect"] || 0;
+
     // Stats
     const stats = {
         totalTested: phase1Results.length,
         dlTested: phase2Results.length,
-        hasSpeed: hasSpeed
-    };
+        hasSpeed: hasSpeed,
+        httpsBlocked: httpsBlocked,
+        redirected: redirected
 
     // Persist and notify
     persistResults(ranked, config, stats);
