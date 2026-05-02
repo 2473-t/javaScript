@@ -6,7 +6,7 @@
  *
  * ========== 部署方式 ==========
  * [task_local]
- * cron 13 */4 * * * script-path=https://YOUR_HOST/cf-ip-optimizer.js#worker_host=mydomain&max_latency=300&dl_count=15, tag=CF优选, enabled=true
+ * cron 13 *\/4 * * * script-path=https://YOUR_HOST/cf-ip-optimizer.js#worker_host=mydomain&max_latency=300&dl_count=15, tag=CF优选, enabled=true
  *
  * ========== 参数说明 (URL hash) ==========
  * worker_host     - 必填, CF Worker 域名 (用于下载测速)
