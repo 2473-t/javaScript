@@ -220,40 +220,37 @@ function row(label, sub, name, value, attrs) {
         + '</div>';
 }
 
-// ── 构建浏览器测速 data URI ──
-function buildSpeedtestDataURI(cfg, results) {
-    // Collect seed IPs from config and past results
+// ── 构建测速页面 ──
+function renderTestPage() {
     var seedIPs = [];
-    if (cfg.customIps) {
-        var parts = cfg.customIps.split(/[,\s]+/);
-        for (var i = 0; i < parts.length; i++) {
-            var p = parts[i].trim();
-            if (p && p.indexOf("/") < 0) seedIPs.push(p);
+    try {
+        var raw = $prefs.valueForKey("cf_opt_result");
+        if (raw) {
+            var results = JSON.parse(raw);
+            if (Array.isArray(results)) {
+                for (var j = 0; j < Math.min(20, results.length); j++) {
+                    if (results[j].ip) seedIPs.push(results[j].ip);
+                }
+            }
         }
-    }
-    if (seedIPs.length === 0 && results && results.length > 0) {
-        for (var j = 0; j < Math.min(20, results.length); j++) {
-            if (results[j].ip) seedIPs.push(results[j].ip);
-        }
-    }
+    } catch (e) {}
     var seedJSON = JSON.stringify(seedIPs);
 
-    // Minimal self-contained HTML page
-    var html = '<!DOCTYPE html><html><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>CF在线测速</title><style>' +
+    return '<!DOCTYPE html><html><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>CF在线测速</title><style>' +
     '*{margin:0;padding:0;box-sizing:border-box}body{font:-apple-system-body,sans-serif;background:#f2f2f7;color:#1c1c1e;padding:16px;max-width:520px;margin:0 auto}' +
     'h2{font-size:18px;font-weight:600;text-align:center;margin:8px 0 12px}' +
     '.card{background:#fff;border-radius:13px;padding:14px;margin-bottom:10px}' +
     '.card-title{font-size:11px;font-weight:600;color:#8e8e93;text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px}' +
     'textarea{width:100%;padding:8px;border:1px solid #c6c6c8;border-radius:8px;font-size:12px;font-family:Menlo,monospace;height:80px}' +
-    '.btn{display:block;width:100%;padding:14px;font-size:17px;font-weight:600;border:none;border-radius:12px;text-align:center;margin:6px 0;cursor:pointer}' +
-    '.btn-start{background:#ff9500;color:#fff}.btn-start:active{opacity:.7}' +
+    '.btn{display:block;width:100%;padding:14px;font-size:17px;font-weight:600;border:none;border-radius:12px;text-align:center;margin:6px 0}' +
+    '.btn-start{background:#ff9500;color:#fff}' +
     '.btn.running{opacity:.6}' +
     'table{width:100%;border-collapse:collapse;font-size:11px}' +
     'th{text-align:left;color:#8e8e93;font-weight:600;font-size:10px;text-transform:uppercase;padding:5px 3px;border-bottom:1px solid #e9e9ea}' +
     'td{padding:5px 3px;border-bottom:1px solid #f5f5f5;font-variant-numeric:tabular-nums}' +
-    '.r-ip{font-family:Menlo,monospace;font-size:11px;color:#1c1c1e}' +
-    '.r-lat{text-align:right;font-weight:500}.r-spd{text-align:right;color:#34c759;font-weight:500}' +
-    'tr:nth-child(1) .r-ip{color:#007aff;font-weight:600}' +
+    '.rip{font-family:Menlo,monospace;font-size:11px;color:#1c1c1e}' +
+    '.rlat{text-align:right;font-weight:500}' +
+    'tr:nth-child(1) .rip{color:#007aff;font-weight:600}' +
     '.prog{text-align:center;padding:8px 0;color:#8e8e93;font-size:12px}' +
     '.raw{background:#1c1c1e;color:#32d74b;padding:10px;border-radius:8px;font-size:10px;font-family:Menlo,monospace;line-height:1.5;white-space:pre;overflow-x:auto;max-height:200px;overflow-y:auto}' +
     '#results{display:none}' +
@@ -265,7 +262,7 @@ function buildSpeedtestDataURI(cfg, results) {
     '<div class=prog id=prog></div>' +
     '<div id=results><div class=card><div class=card-title>延迟排名</div>' +
     '<div style=overflow-x:auto><table><thead><tr><th>#</th><th>IP</th><th>延迟</th></tr></thead><tbody id=tbl></tbody></table></div>' +
-    '<p class=prog id=sum></p>' +
+    '<p class=prog id=sum style=font-size:12px></p>' +
     '<div class=raw id=raw></div></div></div>' +
 
     '<script>' +
@@ -275,13 +272,13 @@ function buildSpeedtestDataURI(cfg, results) {
     'function expandCIDR(c,r){var p=c.split("/");var s=p[0].split(".");var b=0;' +
     'for(var i=0;i<4;i++)b=(b<<8)|(parseInt(s[i])||0);' +
     'var n=Math.pow(2,32-(parseInt(p[1])||24));' +
-    'var l=Math.min(r||3,n),o=[],t=Math.max(1,Math.floor(n/l));' +
+    'var l=Math.min(r||2,n),o=[],t=Math.max(1,Math.floor(n/l));' +
     'for(var j=0;j<l;j++){var v=b+j*t;o.push(((v>>>24)&255)+"."+((v>>>16)&255)+"."+((v>>>8)&255)+"."+(v&255));}' +
     'return o;}' +
 
     'function parseIPs(t){var s={},r=[];var p=t.split(/[,\\s\\n]+/);' +
     'for(var i=0;i<p.length;i++){var x=p[i].trim();if(!x||s[x])continue;' +
-    'if(x.indexOf("/")>=0){var e=expandCIDR(x,2);for(var j=0;j<e.length;j++){if(!s[e[j]]){s[e[j]]=true;r.push(e[j]);}}}' +
+    'if(x.indexOf("/")>=0){var e=expandCIDR(x);for(var j=0;j<e.length;j++){if(!s[e[j]]){s[e[j]]=true;r.push(e[j]);}}}' +
     'else{s[x]=true;r.push(x);}}' +
     'return r;}' +
 
@@ -289,15 +286,16 @@ function buildSpeedtestDataURI(cfg, results) {
     'var t0=performance.now();var u="http://"+ip+"/cdn-cgi/trace";' +
     'var tid=setTimeout(function(){rs({ip:ip,lat:99999});},5000);' +
     'fetch(u,{method:"HEAD",mode:"no-cors",cache:"no-store"}).then(function(){' +
-    'clearTimeout(tid);rs({ip:ip,lat:Math.round(performance.now()-t0)});' +
+    'clearTimeout(tid);var t1=performance.now();rs({ip:ip,lat:Math.round(t1-t0)});' +
     '}).catch(function(){clearTimeout(tid);rs({ip:ip,lat:99999});});' +
     '});}' +
 
     'var running=false;' +
     'function start(){if(running)return;var ips=parseIPs(document.getElementById("ipList").value);' +
-    'if(!ips.length){alert("请先输入IP地址");return;}' +
+    'if(!ips.length){var p=document.getElementById("prog");p.textContent="请先输入IP地址";p.style.color="#ff3b30";return;}' +
     'running=true;var btn=document.getElementById("btn");btn.textContent="测速中...";btn.className="btn btn-start running";' +
-    'var prog=document.getElementById("prog");var tbl=document.getElementById("tbl");' +
+    'var prog=document.getElementById("prog");prog.style.color="#8e8e93";' +
+    'var tbl=document.getElementById("tbl");' +
     'var raw=document.getElementById("raw");var sum=document.getElementById("sum");' +
     'var res=document.getElementById("results");res.style.display="none";' +
     'var B=8,results=[];' +
@@ -306,22 +304,21 @@ function buildSpeedtestDataURI(cfg, results) {
     'prog.textContent="延迟: "+Math.min(i+B,ips.length)+"/"+ips.length+" ("+results.filter(function(r){return r.lat<99999;}).length+" ok)";' +
     'Promise.all(batch.map(ping)).then(function(br){' +
     'for(var j=0;j<br.length;j++)results.push(br[j]);' +
-    'setTimeout(function(){run(i+B);},50);});}' +
+    'setTimeout(function(){run(i+B);},30);});}' +
     'function finish(){running=false;btn.textContent="开始测速";btn.className="btn btn-start";prog.textContent="";' +
-    'var ok=results.filter(function(r){return r.lat<99999;});ok.sort(function(a,b){return a.lat-b.lat;});' +
-    'var show=ok.slice(0,30);tbl.innerHTML="";' +
+    'var ok=results.filter(function(r){return r.lat<99999;});if(ok.length===0){prog.textContent="所有IP超时，请检查网络或IP列表";prog.style.color="#ff3b30";return;}' +
+    'ok.sort(function(a,b){return a.lat-b.lat;});' +
+    'var show=ok.slice(0,Math.min(30,ok.length));tbl.innerHTML="";' +
     'var best=0;for(var i=0;i<Math.min(3,show.length);i++)best+=show[i].lat;' +
     'var avg=show.length>=3?Math.round(best/3):0;' +
     'for(var i=0;i<show.length;i++){var r=show[i];' +
-    'tbl.innerHTML+="<tr><td style=color:#8e8e93;text-align:right;font-size:10px>"+(i+1)+"</td><td class=r-ip>"+r.ip+"</td><td class=r-lat>"+r.lat+"ms</td></tr>";}' +
+    'tbl.innerHTML+="<tr><td style=color:#8e8e93;text-align:right;font-size:10px>"+(i+1)+"</td><td class=rip>"+r.ip+"</td><td class=rlat>"+r.lat+"ms</td></tr>";}' +
     'var rt="";for(var j=0;j<show.length;j++){rt+=(j+1)+". "+show[j].ip+" "+show[j].lat+"ms\\n";}' +
     'raw.textContent=rt;sum.textContent="完成 "+ok.length+"/"+results.length+" IP | 最快: "+show[0].ip+" "+show[0].lat+"ms"+(avg?" | Top3平均: "+avg+"ms":"");' +
     'res.style.display="block";}' +
     'run(0);}' +
-    '<' + '/script>' +
+    '</script>' +
     '</body></html>';
-
-    return "data:text/html;charset=utf-8," + encodeURIComponent(html);
 }
 
 // ── 渲染主页面 ──
@@ -573,7 +570,7 @@ histHTML +
 '<div class="card">' +
 '  <div class="card-title">在线测速 (浏览器原生)</div>' +
 '  <p style="font-size:11px;color:#8e8e93;margin-bottom:8px">点击打开新页面，使用浏览器原生 fetch 测速，延迟更准确。</p>' +
-'  <a href="' + buildSpeedtestDataURI(cfg, results) + '" target="_blank" rel="noopener" class="btn" style="display:block;text-decoration:none;background:#ff9500;color:#fff;margin:0;text-align:center">打开在线测速</a>' +
+'  <a href="/test" target="_blank" rel="noopener" class="btn" style="display:block;text-decoration:none;background:#ff9500;color:#fff;margin:0;text-align:center">打开在线测速</a>' +
 '</div>' +
 
 '<div class="card">' +
@@ -614,11 +611,22 @@ function urlHasPath(url, path) {
     return url.indexOf("cfui.com" + path) >= 0 || url.indexOf(path) >= 0;
 }
 
+var isTest = urlHasPath(url, "/test");
 var isSave = urlHasPath(url, "/save") && method === "POST";
 var isSaveSub = urlHasPath(url, "/save-sub") && method === "POST";
 var isRestore = urlHasPath(url, "/restore") && method === "POST";
 
-if (isSave) {
+if (isTest) {
+    $done({
+        statusCode: 200,
+        headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "no-store",
+            "Content-Security-Policy": "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src 'unsafe-inline' 'unsafe-eval' *"
+        },
+        body: renderTestPage()
+    });
+} else if (isSave) {
     var result = handleSave();
     $done({
         statusCode: result.ok ? 200 : 400,
