@@ -282,39 +282,49 @@ function renderTestPage() {
     'else{s[x]=true;r.push(x);}}' +
     'return r;}' +
 
+    'function fmtIP(ip){return ip.indexOf(":")>=0?"["+ip+"]":ip;}' +
     'function ping(ip){return new Promise(function(rs){' +
-    'var t0=performance.now();var u="http://"+ip+"/cdn-cgi/trace";' +
-    'var tid=setTimeout(function(){rs({ip:ip,lat:99999});},5000);' +
-    'fetch(u,{method:"HEAD",mode:"no-cors",cache:"no-store"}).then(function(){' +
-    'clearTimeout(tid);var t1=performance.now();rs({ip:ip,lat:Math.round(t1-t0)});' +
-    '}).catch(function(){clearTimeout(tid);rs({ip:ip,lat:99999});});' +
+    'var img=new Image();var t0=performance.now();var done=false;' +
+    'var u="http://"+fmtIP(ip)+"/cdn-cgi/trace?_="+Math.random();' +
+    'var tid=setTimeout(function(){if(!done){done=true;img.src="";rs({ip:ip,lat:-2,err:"timeout"});}},5000);' +
+    'img.onload=function(){if(!done){done=true;clearTimeout(tid);rs({ip:ip,lat:Math.round(performance.now()-t0)});}};' +
+    'img.onerror=function(){if(!done){done=true;clearTimeout(tid);rs({ip:ip,lat:Math.round(performance.now()-t0)});}};' +
+    'img.src=u;' +
     '});}' +
 
-    'var running=false;' +
+    'var running=false,allResults=[];' +
     'function start(){if(running)return;var ips=parseIPs(document.getElementById("ipList").value);' +
     'if(!ips.length){var p=document.getElementById("prog");p.textContent="请先输入IP地址";p.style.color="#ff3b30";return;}' +
-    'running=true;var btn=document.getElementById("btn");btn.textContent="测速中...";btn.className="btn btn-start running";' +
-    'var prog=document.getElementById("prog");prog.style.color="#8e8e93";' +
-    'var tbl=document.getElementById("tbl");' +
+    'running=true;allResults=[];var btn=document.getElementById("btn");btn.textContent="测速中...";btn.className="btn btn-start running";' +
+    'var prog=document.getElementById("prog");prog.style.color="#8e8e93";prog.textContent="正在测试 "+ips.length+" 个IP...";' +
+    'var tbl=document.getElementById("tbl");tbl.innerHTML="";' +
     'var raw=document.getElementById("raw");var sum=document.getElementById("sum");' +
     'var res=document.getElementById("results");res.style.display="none";' +
-    'var B=8,results=[];' +
-    'function run(i){if(i>=ips.length){finish();return;}' +
+    'var B=8;' +
+    'var t0All=performance.now();' +
+    'function run(i){if(i>=ips.length){finish(t0All);return;}' +
     'var batch=ips.slice(i,i+B);' +
-    'prog.textContent="延迟: "+Math.min(i+B,ips.length)+"/"+ips.length+" ("+results.filter(function(r){return r.lat<99999;}).length+" ok)";' +
+    'var doneCnt=allResults.length;' +
+    'prog.textContent="延迟测速: "+Math.min(i+B,ips.length)+"/"+ips.length+" (已响应: "+doneCnt+", 超时: "+allResults.filter(function(r){return r.lat===-2;}).length+")";' +
     'Promise.all(batch.map(ping)).then(function(br){' +
-    'for(var j=0;j<br.length;j++)results.push(br[j]);' +
-    'setTimeout(function(){run(i+B);},30);});}' +
-    'function finish(){running=false;btn.textContent="开始测速";btn.className="btn btn-start";prog.textContent="";' +
-    'var ok=results.filter(function(r){return r.lat<99999;});if(ok.length===0){prog.textContent="所有IP超时，请检查网络或IP列表";prog.style.color="#ff3b30";return;}' +
+    'for(var j=0;j<br.length;j++)allResults.push(br[j]);' +
+    'setTimeout(function(){run(i+B);},20);});}' +
+    'function finish(tAll){running=false;var elapsed=Math.round(performance.now()-tAll);' +
+    'btn.textContent="开始测速";btn.className="btn btn-start";' +
+    'var ok=allResults.filter(function(r){return r.lat>=0;});' +
+    'var to=allResults.filter(function(r){return r.lat===-2;});' +
+    'prog.textContent="完成: "+ok.length+"/"+allResults.length+" IP响应 | "+to.length+" 超时 | 耗时 "+elapsed+"ms";' +
+    'prog.style.color=ok.length?"#34c759":"#ff3b30";' +
+    'if(ok.length===0){prog.textContent+=" — 所有IP无响应，请检查网络或IP列表";return;}' +
     'ok.sort(function(a,b){return a.lat-b.lat;});' +
     'var show=ok.slice(0,Math.min(30,ok.length));tbl.innerHTML="";' +
     'var best=0;for(var i=0;i<Math.min(3,show.length);i++)best+=show[i].lat;' +
     'var avg=show.length>=3?Math.round(best/3):0;' +
     'for(var i=0;i<show.length;i++){var r=show[i];' +
-    'tbl.innerHTML+="<tr><td style=color:#8e8e93;text-align:right;font-size:10px>"+(i+1)+"</td><td class=rip>"+r.ip+"</td><td class=rlat>"+r.lat+"ms</td></tr>";}' +
+    'tbl.innerHTML+="<tr><td style=color:#8e8e93;text-align:right;font-size:10px;width:20px>"+(i+1)+"</td><td class=rip>"+r.ip+"</td><td class=rlat>"+r.lat+"ms</td></tr>";}' +
     'var rt="";for(var j=0;j<show.length;j++){rt+=(j+1)+". "+show[j].ip+" "+show[j].lat+"ms\\n";}' +
-    'raw.textContent=rt;sum.textContent="完成 "+ok.length+"/"+results.length+" IP | 最快: "+show[0].ip+" "+show[0].lat+"ms"+(avg?" | Top3平均: "+avg+"ms":"");' +
+    'if(to.length)rt+="\\n超时: "+to.length+" IP\\n";' +
+    'raw.textContent=rt;sum.textContent="完成 "+ok.length+"/"+allResults.length+" IP | 最快: "+show[0].ip+" "+show[0].lat+"ms"+(avg?" | Top3平均: "+avg+"ms":"");' +
     'res.style.display="block";}' +
     'run(0);}' +
     '</script>' +
