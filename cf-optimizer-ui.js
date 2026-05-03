@@ -466,12 +466,196 @@ return html;
 summaryHTML +
 histHTML +
 
+'<div class="card" id="speedtest-card">' +
+'  <div class="card-title">在线测速 (浏览器)</div>' +
+'  <p style="font-size:11px;color:#8e8e93;margin-bottom:8px">使用浏览器原生 fetch，读取上方"自定义IP"字段中的 IP 列表。</p>' +
+'  <button type="button" onclick="startSpeedtest()" id="btn-test" class="btn" style="background:#ff9500;color:#fff;margin:0">开始测速</button>' +
+'  <div id="test-progress" style="display:none;text-align:center;padding:12px 0;color:#8e8e93;font-size:13px"></div>' +
+'  <div id="test-results" style="display:none;margin-top:10px">' +
+'    <div style="overflow-x:auto"><table class="result-table" id="test-table"><thead><tr><th>#</th><th>IP</th><th>延迟</th><th>速度</th></tr></thead><tbody></tbody></table></div>' +
+'    <div style="margin-top:8px;font-size:10px;color:#8e8e93" id="test-summary-text"></div>' +
+'    <div class="raw-text" id="test-raw" style="display:none"></div>' +
+'  </div>' +
+'</div>' +
+
 '<div class="card">' +
 '  <div class="card-title">Cron 命令</div>' +
 '  <div class="url-box">13 */4 * * * YOUR_OPTIMIZER_URL#auto, tag=CF优选, enabled=true</div>' +
 '  <p class="hint">复制到 QX [task_local]，URL 替换为 cf-ip-optimizer.js 地址</p>' +
 '</div>' +
 
+'<script>' +
+'var _spRunning = false;' +
+
+// ── 解析 CIDR ──
+'function _expandCIDR(cidr, maxPer){' +
+'  var parts=cidr.split("/");' +
+'  var ip=parts[0]; var prefix=parseInt(parts[1])||24;' +
+'  var segs=ip.split("."); var base=0;' +
+'  for(var i=0;i<4;i++) base=(base<<8)|(parseInt(segs[i])||0);' +
+'  var count=Math.pow(2,32-prefix);' +
+'  var limit=Math.min(maxPer||3, count);' +
+'  var out=[]; var step=Math.max(1,Math.floor(count/limit));' +
+'  for(var j=0;j<limit&&out.length<limit;j++){' +
+'    var n=base+j*step;' +
+'    out.push(((n>>>24)&255)+"."+((n>>>16)&255)+"."+((n>>>8)&255)+"."+(n&255));' +
+'  }' +
+'  return out;' +
+'}' +
+
+// ── 收集 IP 列表 ──
+'function _collectIPs(){' +
+'  var field=document.getElementById("f-customIps")||document.querySelector("input[name=customIps]");' +
+'  var raw=field?field.value:"";' +
+'  var seen={}; var ips=[];' +
+'  if(raw){' +
+'    var parts=raw.split(/[,\\s]+/);' +
+'    for(var i=0;i<parts.length;i++){' +
+'      var p=parts[i].trim();' +
+'      if(!p||seen[p]) continue;' +
+'      if(p.indexOf("/")>=0){' +
+'        var ex=_expandCIDR(p,2);' +
+'        for(var j=0;j<ex.length;j++){ if(!seen[ex[j]]){ seen[ex[j]]=true; ips.push(ex[j]); } }' +
+'      } else {' +
+'        seen[p]=true; ips.push(p);' +
+'      }' +
+'    }' +
+'  }' +
+'  // Fallback: use stored results if available' +
+'  if(ips.length===0){' +
+'    try{ var stored=JSON.parse(localStorage.getItem("cf_last_ips")||"[]"); ips=stored; }catch(e){}' +
+'  }' +
+'  return ips;' +
+'}' +
+
+// ── 延迟测试 (单个 IP) ──
+'function _pingIP(ip){' +
+'  return new Promise(function(resolve){' +
+'    var t0=performance.now();' +
+'    var url="http://"+ip+"/cdn-cgi/trace";' +
+'    try{' +
+'      fetch(url,{method:"HEAD",mode:"no-cors",cache:"no-store"}).then(function(){' +
+'        var t1=performance.now();' +
+'        // Try Resource Timing for TCP connect' +
+'        var tcp=0;' +
+'        try{' +
+'          var entries=performance.getEntriesByType("resource");' +
+'          for(var i=entries.length-1;i>=0;i--){' +
+'            if(entries[i].name===url){' +
+'              tcp=Math.round(entries[i].connectEnd-entries[i].connectStart);' +
+'              break;' +
+'            }' +
+'          }' +
+'        }catch(e){}' +
+'        resolve({ip:ip,latency:Math.round(t1-t0),tcp:tcp,ok:true});' +
+'      }).catch(function(){' +
+'        resolve({ip:ip,latency:Infinity,tcp:0,ok:false});' +
+'      });' +
+'      // Timeout' +
+'      setTimeout(function(){ resolve({ip:ip,latency:Infinity,tcp:0,ok:false}); },5000);' +
+'    }catch(e){' +
+'      resolve({ip:ip,latency:Infinity,tcp:0,ok:false});' +
+'    }' +
+'  });' +
+'}' +
+
+// ── 下载测速 (通过 Worker 域名) ──
+'function _dlSpeed(ip,workerHost,port,path,bytes){' +
+'  return new Promise(function(resolve){' +
+'    var t0=performance.now();' +
+'    var url="http://"+ip+":"+port+path+"?bytes="+bytes;' +
+'    try{' +
+'      fetch(url,{method:"GET",mode:"no-cors",cache:"no-store"}).then(function(){' +
+'        var elapsed=(performance.now()-t0)/1000;' +
+'        var speedMB=elapsed>0?(bytes/1048576)/elapsed:0;' +
+'        resolve({ip:ip,speed:speedMB,elapsed:elapsed,ok:true});' +
+'      }).catch(function(){' +
+'        resolve({ip:ip,speed:0,elapsed:0,ok:false});' +
+'      });' +
+'      setTimeout(function(){ resolve({ip:ip,speed:0,elapsed:0,ok:false}); },15000);' +
+'    }catch(e){' +
+'      resolve({ip:ip,speed:0,elapsed:0,ok:false});' +
+'    }' +
+'  });' +
+'}' +
+
+// ── 主函数 ──
+'function startSpeedtest(){' +
+'  if(_spRunning) return;' +
+'  _spRunning=true;' +
+'  var btn=document.getElementById("btn-test");' +
+'  var prog=document.getElementById("test-progress");' +
+'  var resDiv=document.getElementById("test-results");' +
+'  var tbody=document.querySelector("#test-table tbody");' +
+'  var raw=document.getElementById("test-raw");' +
+'  var summary=document.getElementById("test-summary-text");' +
+
+'  btn.textContent="测速中..."; btn.style.opacity="0.6";' +
+'  prog.style.display="block"; prog.textContent="收集 IP...";' +
+'  resDiv.style.display="none";' +
+
+'  var ips=_collectIPs();' +
+'  if(ips.length===0){' +
+'    prog.textContent="未找到 IP，请在"自定义IP"字段中输入";' +
+'    btn.textContent="开始测速"; btn.style.opacity="1";' +
+'    _spRunning=false;' +
+'    return;' +
+'  }' +
+'  prog.textContent="测试 "+ips.length+" 个 IP (延迟)...";' +
+
+'  setTimeout(function(){' +
+'  // Phase 1: 延迟测试' +
+'  var BATCH=8;' +
+'  var results=[];' +
+'  function runBatch(idx){' +
+'    if(idx>=ips.length){' +
+'      finishPhase1(results);' +
+'      return;' +
+'    }' +
+'    var batch=ips.slice(idx,idx+BATCH);' +
+'    prog.textContent="延迟: "+Math.min(idx+BATCH,ips.length)+"/"+ips.length+" ("+results.filter(function(r){return r.ok;}).length+" ok)";' +
+'    Promise.all(batch.map(_pingIP)).then(function(batchR){' +
+'      for(var i=0;i<batchR.length;i++) results.push(batchR[i]);' +
+'      setTimeout(function(){ runBatch(idx+BATCH); },50);' +
+'    });' +
+'  }' +
+
+'  function finishPhase1(results){' +
+'    var ok=results.filter(function(r){return r.ok&&r.latency<99999;});' +
+'    ok.sort(function(a,b){return a.latency-b.latency;});' +
+'    // Save IPs' +
+'    try{ localStorage.setItem("cf_last_ips",JSON.stringify(ok.slice(0,30).map(function(r){return r.ip;}))); }catch(e){}' +
+'    // Display' +
+'    tbody.innerHTML="";' +
+'    var show=ok.slice(0,30);' +
+'    var bestAvg=0;' +
+'    for(var i=0;i<Math.min(3,show.length);i++) bestAvg+=show[i].latency;' +
+'    if(show.length>=3) bestAvg=Math.round(bestAvg/3);' +
+'    for(var i=0;i<show.length;i++){' +
+'      var r=show[i];' +
+'      var row=document.createElement("tr");' +
+'      row.innerHTML="<td style=color:#8e8e93;text-align:right;font-size:10px>"+(i+1)+"</td>"+' +
+'        "<td class=r-ip>"+r.ip+"</td>"+' +
+'        "<td class=r-lat>"+r.latency+"ms</td>"+' +
+'        "<td class=r-spd>-</td>";' +
+'      tbody.appendChild(row);' +
+'    }' +
+'    var rawText="";' +
+'    for(var i2=0;i2<show.length;i2++){' +
+'      rawText+=(i2+1)+". "+show[i2].ip+" "+show[i2].latency+"ms\\n";' +
+'    }' +
+'    raw.textContent=rawText; raw.style.display="block";' +
+'    summary.textContent="完成 "+ok.length+"/"+results.length+" IP | 最快: "+show[0].ip+" "+show[0].latency+"ms | Top3平均: "+bestAvg+"ms";' +
+'    resDiv.style.display="block";' +
+'    btn.textContent="开始测速"; btn.style.opacity="1";' +
+'    prog.style.display="none";' +
+'    _spRunning=false;' +
+'  }' +
+'  runBatch(0);' +
+'  },100);' +
+'}' +
+
+'</script>' +
 '</body></html>';
 }
 
