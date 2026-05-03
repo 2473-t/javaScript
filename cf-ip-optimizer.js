@@ -585,17 +585,14 @@ function warmupProbes(config) {
  * 6. Phase 1: 并发延迟测试
  *******************************/
 
-function parseTrace(body) {
+function parseColoFromHeader(headers) {
+    // Extract colo from CF-Ray header: "8a1b2c3d4e5f-HKG" → "HKG"
     try {
-        const coloMatch = body.match(/^colo=(\w+)$/m);
-        const locMatch = body.match(/^loc=(\w+)$/m);
-        return {
-            colo: coloMatch ? coloMatch[1] : null,
-            loc: locMatch ? locMatch[1] : null
-        };
-    } catch (e) {
-        return { colo: null, loc: null };
-    }
+        var cfRay = headers["CF-Ray"] || headers["cf-ray"] || "";
+        var dash = cfRay.lastIndexOf("-");
+        if (dash >= 0) return cfRay.substring(dash + 1);
+        return null;
+    } catch (e) { return null; }
 }
 
 function toURL(ip, path) {
@@ -611,7 +608,7 @@ function measureLatency(ip, config) {
 
     return $task.fetch({
         url: url,
-        method: "GET",
+        method: "HEAD",
         timeout: config.latencyTimeout,
         policy: "DIRECT",
         opts: { redirection: false },
@@ -622,12 +619,12 @@ function measureLatency(ip, config) {
         }
     }).then(response => {
         const elapsed = Date.now() - startTime;
-        const info = parseTrace(response.body || "");
+        var colo = parseColoFromHeader(response.headers || {});
         return {
             ip: ip,
             latency: elapsed,
-            colo: info.colo,
-            loc: info.loc,
+            colo: colo,
+            loc: null,
             status: "ok"
         };
     }).catch(reason => {
@@ -885,7 +882,7 @@ function computeFinalRanking(phase1Results, phase2Results, config) {
     if (!hasSpeedData || phase2Results.length === 0) {
         // Fallback: latency-only ranking
         console.log("[CFOpt] No valid speed data, using latency-only ranking");
-        return phase1Results.slice(0, 10).map((r, i) => ({
+        return phase1Results.slice(0, 50).map((r, i) => ({
             rank: i + 1,
             ip: r.ip,
             latency: r.latency,
@@ -940,7 +937,7 @@ function computeFinalRanking(phase1Results, phase2Results, config) {
     scored.sort((a, b) => a.score - b.score);
 
     // Add rank
-    const ranked = scored.slice(0, 10).map((r, i) => {
+    const ranked = scored.slice(0, 50).map((r, i) => {
         r.rank = i + 1;
         return r;
     });
