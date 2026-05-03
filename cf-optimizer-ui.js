@@ -220,6 +220,110 @@ function row(label, sub, name, value, attrs) {
         + '</div>';
 }
 
+// ── 构建浏览器测速 data URI ──
+function buildSpeedtestDataURI(cfg, results) {
+    // Collect seed IPs from config and past results
+    var seedIPs = [];
+    if (cfg.customIps) {
+        var parts = cfg.customIps.split(/[,\s]+/);
+        for (var i = 0; i < parts.length; i++) {
+            var p = parts[i].trim();
+            if (p && p.indexOf("/") < 0) seedIPs.push(p);
+        }
+    }
+    if (seedIPs.length === 0 && results && results.length > 0) {
+        for (var j = 0; j < Math.min(20, results.length); j++) {
+            if (results[j].ip) seedIPs.push(results[j].ip);
+        }
+    }
+    var seedJSON = JSON.stringify(seedIPs);
+
+    // Minimal self-contained HTML page
+    var html = '<!DOCTYPE html><html><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>CF在线测速</title><style>' +
+    '*{margin:0;padding:0;box-sizing:border-box}body{font:-apple-system-body,sans-serif;background:#f2f2f7;color:#1c1c1e;padding:16px;max-width:520px;margin:0 auto}' +
+    'h2{font-size:18px;font-weight:600;text-align:center;margin:8px 0 12px}' +
+    '.card{background:#fff;border-radius:13px;padding:14px;margin-bottom:10px}' +
+    '.card-title{font-size:11px;font-weight:600;color:#8e8e93;text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px}' +
+    'textarea{width:100%;padding:8px;border:1px solid #c6c6c8;border-radius:8px;font-size:12px;font-family:Menlo,monospace;height:80px}' +
+    '.btn{display:block;width:100%;padding:14px;font-size:17px;font-weight:600;border:none;border-radius:12px;text-align:center;margin:6px 0;cursor:pointer}' +
+    '.btn-start{background:#ff9500;color:#fff}.btn-start:active{opacity:.7}' +
+    '.btn.running{opacity:.6}' +
+    'table{width:100%;border-collapse:collapse;font-size:11px}' +
+    'th{text-align:left;color:#8e8e93;font-weight:600;font-size:10px;text-transform:uppercase;padding:5px 3px;border-bottom:1px solid #e9e9ea}' +
+    'td{padding:5px 3px;border-bottom:1px solid #f5f5f5;font-variant-numeric:tabular-nums}' +
+    '.r-ip{font-family:Menlo,monospace;font-size:11px;color:#1c1c1e}' +
+    '.r-lat{text-align:right;font-weight:500}.r-spd{text-align:right;color:#34c759;font-weight:500}' +
+    'tr:nth-child(1) .r-ip{color:#007aff;font-weight:600}' +
+    '.prog{text-align:center;padding:8px 0;color:#8e8e93;font-size:12px}' +
+    '.raw{background:#1c1c1e;color:#32d74b;padding:10px;border-radius:8px;font-size:10px;font-family:Menlo,monospace;line-height:1.5;white-space:pre;overflow-x:auto;max-height:200px;overflow-y:auto}' +
+    '#results{display:none}' +
+    '</style></head><body><h2>CF IP 在线测速</h2>' +
+    '<div class=card><div class=card-title>IP 列表</div>' +
+    '<textarea id=ipList placeholder="104.18.30.168,104.16.0.0/15"></textarea>' +
+    '<p style="font-size:10px;color:#8e8e93;margin-top:4px">每行一个IP或CIDR，逗号/空格分隔</p></div>' +
+    '<button class="btn btn-start" id=btn onclick=start()>开始测速</button>' +
+    '<div class=prog id=prog></div>' +
+    '<div id=results><div class=card><div class=card-title>延迟排名</div>' +
+    '<div style=overflow-x:auto><table><thead><tr><th>#</th><th>IP</th><th>延迟</th></tr></thead><tbody id=tbl></tbody></table></div>' +
+    '<p class=prog id=sum></p>' +
+    '<div class=raw id=raw></div></div></div>' +
+
+    '<script>' +
+    'var seeds=' + seedJSON + ';' +
+    'document.getElementById("ipList").value=seeds.join("\\n");' +
+
+    'function expandCIDR(c,r){var p=c.split("/");var s=p[0].split(".");var b=0;' +
+    'for(var i=0;i<4;i++)b=(b<<8)|(parseInt(s[i])||0);' +
+    'var n=Math.pow(2,32-(parseInt(p[1])||24));' +
+    'var l=Math.min(r||3,n),o=[],t=Math.max(1,Math.floor(n/l));' +
+    'for(var j=0;j<l;j++){var v=b+j*t;o.push(((v>>>24)&255)+"."+((v>>>16)&255)+"."+((v>>>8)&255)+"."+(v&255));}' +
+    'return o;}' +
+
+    'function parseIPs(t){var s={},r=[];var p=t.split(/[,\\s\\n]+/);' +
+    'for(var i=0;i<p.length;i++){var x=p[i].trim();if(!x||s[x])continue;' +
+    'if(x.indexOf("/")>=0){var e=expandCIDR(x,2);for(var j=0;j<e.length;j++){if(!s[e[j]]){s[e[j]]=true;r.push(e[j]);}}}' +
+    'else{s[x]=true;r.push(x);}}' +
+    'return r;}' +
+
+    'function ping(ip){return new Promise(function(rs){' +
+    'var t0=performance.now();var u="http://"+ip+"/cdn-cgi/trace";' +
+    'var tid=setTimeout(function(){rs({ip:ip,lat:99999});},5000);' +
+    'fetch(u,{method:"HEAD",mode:"no-cors",cache:"no-store"}).then(function(){' +
+    'clearTimeout(tid);rs({ip:ip,lat:Math.round(performance.now()-t0)});' +
+    '}).catch(function(){clearTimeout(tid);rs({ip:ip,lat:99999});});' +
+    '});}' +
+
+    'var running=false;' +
+    'function start(){if(running)return;var ips=parseIPs(document.getElementById("ipList").value);' +
+    'if(!ips.length){alert("请先输入IP地址");return;}' +
+    'running=true;var btn=document.getElementById("btn");btn.textContent="测速中...";btn.className="btn btn-start running";' +
+    'var prog=document.getElementById("prog");var tbl=document.getElementById("tbl");' +
+    'var raw=document.getElementById("raw");var sum=document.getElementById("sum");' +
+    'var res=document.getElementById("results");res.style.display="none";' +
+    'var B=8,results=[];' +
+    'function run(i){if(i>=ips.length){finish();return;}' +
+    'var batch=ips.slice(i,i+B);' +
+    'prog.textContent="延迟: "+Math.min(i+B,ips.length)+"/"+ips.length+" ("+results.filter(function(r){return r.lat<99999;}).length+" ok)";' +
+    'Promise.all(batch.map(ping)).then(function(br){' +
+    'for(var j=0;j<br.length;j++)results.push(br[j]);' +
+    'setTimeout(function(){run(i+B);},50);});}' +
+    'function finish(){running=false;btn.textContent="开始测速";btn.className="btn btn-start";prog.textContent="";' +
+    'var ok=results.filter(function(r){return r.lat<99999;});ok.sort(function(a,b){return a.lat-b.lat;});' +
+    'var show=ok.slice(0,30);tbl.innerHTML="";' +
+    'var best=0;for(var i=0;i<Math.min(3,show.length);i++)best+=show[i].lat;' +
+    'var avg=show.length>=3?Math.round(best/3):0;' +
+    'for(var i=0;i<show.length;i++){var r=show[i];' +
+    'tbl.innerHTML+="<tr><td style=color:#8e8e93;text-align:right;font-size:10px>"+(i+1)+"</td><td class=r-ip>"+r.ip+"</td><td class=r-lat>"+r.lat+"ms</td></tr>";}' +
+    'var rt="";for(var j=0;j<show.length;j++){rt+=(j+1)+". "+show[j].ip+" "+show[j].lat+"ms\\n";}' +
+    'raw.textContent=rt;sum.textContent="完成 "+ok.length+"/"+results.length+" IP | 最快: "+show[0].ip+" "+show[0].lat+"ms"+(avg?" | Top3平均: "+avg+"ms":"");' +
+    'res.style.display="block";}' +
+    'run(0);}' +
+    '<' + '/script>' +
+    '</body></html>';
+
+    return "data:text/html;charset=utf-8," + encodeURIComponent(html);
+}
+
 // ── 渲染主页面 ──
 function renderPage() {
     var saved = loadConfig();
@@ -466,16 +570,10 @@ return html;
 summaryHTML +
 histHTML +
 
-'<div class="card" id="speedtest-card">' +
-'  <div class="card-title">在线测速 (浏览器)</div>' +
-'  <p style="font-size:11px;color:#8e8e93;margin-bottom:8px">使用浏览器原生 fetch，读取上方"自定义IP"字段中的 IP 列表。</p>' +
-'  <button type="button" onclick="startSpeedtest()" id="btn-test" class="btn" style="background:#ff9500;color:#fff;margin:0">开始测速</button>' +
-'  <div id="test-progress" style="display:none;text-align:center;padding:12px 0;color:#8e8e93;font-size:13px"></div>' +
-'  <div id="test-results" style="display:none;margin-top:10px">' +
-'    <div style="overflow-x:auto"><table class="result-table" id="test-table"><thead><tr><th>#</th><th>IP</th><th>延迟</th><th>速度</th></tr></thead><tbody></tbody></table></div>' +
-'    <div style="margin-top:8px;font-size:10px;color:#8e8e93" id="test-summary-text"></div>' +
-'    <div class="raw-text" id="test-raw" style="display:none"></div>' +
-'  </div>' +
+'<div class="card">' +
+'  <div class="card-title">在线测速 (浏览器原生)</div>' +
+'  <p style="font-size:11px;color:#8e8e93;margin-bottom:8px">点击打开新页面，使用浏览器原生 fetch 测速，延迟更准确。</p>' +
+'  <a href="' + buildSpeedtestDataURI(cfg, results) + '" target="_blank" rel="noopener" class="btn" style="display:block;text-decoration:none;background:#ff9500;color:#fff;margin:0;text-align:center">打开在线测速</a>' +
 '</div>' +
 
 '<div class="card">' +
@@ -484,178 +582,6 @@ histHTML +
 '  <p class="hint">复制到 QX [task_local]，URL 替换为 cf-ip-optimizer.js 地址</p>' +
 '</div>' +
 
-'<script>' +
-'var _spRunning = false;' +
-
-// ── 解析 CIDR ──
-'function _expandCIDR(cidr, maxPer){' +
-'  var parts=cidr.split("/");' +
-'  var ip=parts[0]; var prefix=parseInt(parts[1])||24;' +
-'  var segs=ip.split("."); var base=0;' +
-'  for(var i=0;i<4;i++) base=(base<<8)|(parseInt(segs[i])||0);' +
-'  var count=Math.pow(2,32-prefix);' +
-'  var limit=Math.min(maxPer||3, count);' +
-'  var out=[]; var step=Math.max(1,Math.floor(count/limit));' +
-'  for(var j=0;j<limit&&out.length<limit;j++){' +
-'    var n=base+j*step;' +
-'    out.push(((n>>>24)&255)+"."+((n>>>16)&255)+"."+((n>>>8)&255)+"."+(n&255));' +
-'  }' +
-'  return out;' +
-'}' +
-
-// ── 收集 IP 列表 ──
-'function _collectIPs(){' +
-'  var field=document.getElementById("f-customIps")||document.querySelector("input[name=customIps]");' +
-'  var raw=field?field.value:"";' +
-'  var seen={}; var ips=[];' +
-'  if(raw){' +
-'    var parts=raw.split(/[,\\s]+/);' +
-'    for(var i=0;i<parts.length;i++){' +
-'      var p=parts[i].trim();' +
-'      if(!p||seen[p]) continue;' +
-'      if(p.indexOf("/")>=0){' +
-'        var ex=_expandCIDR(p,2);' +
-'        for(var j=0;j<ex.length;j++){ if(!seen[ex[j]]){ seen[ex[j]]=true; ips.push(ex[j]); } }' +
-'      } else {' +
-'        seen[p]=true; ips.push(p);' +
-'      }' +
-'    }' +
-'  }' +
-'  // Fallback: use stored results if available' +
-'  if(ips.length===0){' +
-'    try{ var stored=JSON.parse(localStorage.getItem("cf_last_ips")||"[]"); ips=stored; }catch(e){}' +
-'  }' +
-'  return ips;' +
-'}' +
-
-// ── 延迟测试 (单个 IP) ──
-'function _pingIP(ip){' +
-'  return new Promise(function(resolve){' +
-'    var t0=performance.now();' +
-'    var url="http://"+ip+"/cdn-cgi/trace";' +
-'    try{' +
-'      fetch(url,{method:"HEAD",mode:"no-cors",cache:"no-store"}).then(function(){' +
-'        var t1=performance.now();' +
-'        // Try Resource Timing for TCP connect' +
-'        var tcp=0;' +
-'        try{' +
-'          var entries=performance.getEntriesByType("resource");' +
-'          for(var i=entries.length-1;i>=0;i--){' +
-'            if(entries[i].name===url){' +
-'              tcp=Math.round(entries[i].connectEnd-entries[i].connectStart);' +
-'              break;' +
-'            }' +
-'          }' +
-'        }catch(e){}' +
-'        resolve({ip:ip,latency:Math.round(t1-t0),tcp:tcp,ok:true});' +
-'      }).catch(function(){' +
-'        resolve({ip:ip,latency:Infinity,tcp:0,ok:false});' +
-'      });' +
-'      // Timeout' +
-'      setTimeout(function(){ resolve({ip:ip,latency:Infinity,tcp:0,ok:false}); },5000);' +
-'    }catch(e){' +
-'      resolve({ip:ip,latency:Infinity,tcp:0,ok:false});' +
-'    }' +
-'  });' +
-'}' +
-
-// ── 下载测速 (通过 Worker 域名) ──
-'function _dlSpeed(ip,workerHost,port,path,bytes){' +
-'  return new Promise(function(resolve){' +
-'    var t0=performance.now();' +
-'    var url="http://"+ip+":"+port+path+"?bytes="+bytes;' +
-'    try{' +
-'      fetch(url,{method:"GET",mode:"no-cors",cache:"no-store"}).then(function(){' +
-'        var elapsed=(performance.now()-t0)/1000;' +
-'        var speedMB=elapsed>0?(bytes/1048576)/elapsed:0;' +
-'        resolve({ip:ip,speed:speedMB,elapsed:elapsed,ok:true});' +
-'      }).catch(function(){' +
-'        resolve({ip:ip,speed:0,elapsed:0,ok:false});' +
-'      });' +
-'      setTimeout(function(){ resolve({ip:ip,speed:0,elapsed:0,ok:false}); },15000);' +
-'    }catch(e){' +
-'      resolve({ip:ip,speed:0,elapsed:0,ok:false});' +
-'    }' +
-'  });' +
-'}' +
-
-// ── 主函数 ──
-'function startSpeedtest(){' +
-'  if(_spRunning) return;' +
-'  _spRunning=true;' +
-'  var btn=document.getElementById("btn-test");' +
-'  var prog=document.getElementById("test-progress");' +
-'  var resDiv=document.getElementById("test-results");' +
-'  var tbody=document.querySelector("#test-table tbody");' +
-'  var raw=document.getElementById("test-raw");' +
-'  var summary=document.getElementById("test-summary-text");' +
-
-'  btn.textContent="测速中..."; btn.style.opacity="0.6";' +
-'  prog.style.display="block"; prog.textContent="收集 IP...";' +
-'  resDiv.style.display="none";' +
-
-'  var ips=_collectIPs();' +
-'  if(ips.length===0){' +
-'    prog.textContent="未找到 IP，请在"自定义IP"字段中输入";' +
-'    btn.textContent="开始测速"; btn.style.opacity="1";' +
-'    _spRunning=false;' +
-'    return;' +
-'  }' +
-'  prog.textContent="测试 "+ips.length+" 个 IP (延迟)...";' +
-
-'  setTimeout(function(){' +
-'  // Phase 1: 延迟测试' +
-'  var BATCH=8;' +
-'  var results=[];' +
-'  function runBatch(idx){' +
-'    if(idx>=ips.length){' +
-'      finishPhase1(results);' +
-'      return;' +
-'    }' +
-'    var batch=ips.slice(idx,idx+BATCH);' +
-'    prog.textContent="延迟: "+Math.min(idx+BATCH,ips.length)+"/"+ips.length+" ("+results.filter(function(r){return r.ok;}).length+" ok)";' +
-'    Promise.all(batch.map(_pingIP)).then(function(batchR){' +
-'      for(var i=0;i<batchR.length;i++) results.push(batchR[i]);' +
-'      setTimeout(function(){ runBatch(idx+BATCH); },50);' +
-'    });' +
-'  }' +
-
-'  function finishPhase1(results){' +
-'    var ok=results.filter(function(r){return r.ok&&r.latency<99999;});' +
-'    ok.sort(function(a,b){return a.latency-b.latency;});' +
-'    // Save IPs' +
-'    try{ localStorage.setItem("cf_last_ips",JSON.stringify(ok.slice(0,30).map(function(r){return r.ip;}))); }catch(e){}' +
-'    // Display' +
-'    tbody.innerHTML="";' +
-'    var show=ok.slice(0,30);' +
-'    var bestAvg=0;' +
-'    for(var i=0;i<Math.min(3,show.length);i++) bestAvg+=show[i].latency;' +
-'    if(show.length>=3) bestAvg=Math.round(bestAvg/3);' +
-'    for(var i=0;i<show.length;i++){' +
-'      var r=show[i];' +
-'      var row=document.createElement("tr");' +
-'      row.innerHTML="<td style=color:#8e8e93;text-align:right;font-size:10px>"+(i+1)+"</td>"+' +
-'        "<td class=r-ip>"+r.ip+"</td>"+' +
-'        "<td class=r-lat>"+r.latency+"ms</td>"+' +
-'        "<td class=r-spd>-</td>";' +
-'      tbody.appendChild(row);' +
-'    }' +
-'    var rawText="";' +
-'    for(var i2=0;i2<show.length;i2++){' +
-'      rawText+=(i2+1)+". "+show[i2].ip+" "+show[i2].latency+"ms\\n";' +
-'    }' +
-'    raw.textContent=rawText; raw.style.display="block";' +
-'    summary.textContent="完成 "+ok.length+"/"+results.length+" IP | 最快: "+show[0].ip+" "+show[0].latency+"ms | Top3平均: "+bestAvg+"ms";' +
-'    resDiv.style.display="block";' +
-'    btn.textContent="开始测速"; btn.style.opacity="1";' +
-'    prog.style.display="none";' +
-'    _spRunning=false;' +
-'  }' +
-'  runBatch(0);' +
-'  },100);' +
-'}' +
-
-'</script>' +
 '</body></html>';
 }
 
