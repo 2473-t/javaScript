@@ -246,17 +246,54 @@ function renderPage() {
         badge = '<div class="status-new">首次使用 — 请填写 Worker 域名并保存</div>';
     }
 
-    // 上次结果卡片
+    // 上次结果卡片 — 完整排名列表
     var summaryHTML = "";
-    if (summary && summary.bestIP) {
-        var speed = summary.bestSpeed ? summary.bestSpeed.toFixed(1) + "MB/s " : "";
-        var colo = summary.bestColo ? summary.bestColo + " " : "";
+    var MAX_SHOW = 50;
+    if (results && results.length > 0) {
+        var topN = results.slice(0, Math.min(MAX_SHOW, results.length));
         summaryHTML = '<div class="card summary-card">'
-            + '<div class="card-title">上次优选结果</div>'
-            + '<div class="summary-text">' + esc(formatTime(summary.timestamp)) + '</div>'
-            + '<div class="summary-best">最优: ' + esc(summary.bestIP) + ' '
-            + esc(String(summary.bestLatency)) + 'ms ' + esc(colo) + esc(speed) + '</div>'
-            + '</div>';
+            + '<div class="card-title">上次优选结果 (' + esc(String(topN.length)) + '/' + esc(String(results.length)) + ' IP)</div>';
+        if (summary && summary.timestamp) {
+            summaryHTML += '<div class="summary-text">' + esc(formatTime(summary.timestamp)) + '</div>';
+        }
+        // 最优高亮
+        if (summary && summary.bestIP) {
+            var spd = summary.bestSpeed ? summary.bestSpeed.toFixed(1) + "MB/s " : "";
+            var clo = summary.bestColo ? summary.bestColo + " " : "";
+            summaryHTML += '<div class="summary-best" style="margin-bottom:8px">最优: '
+                + esc(summary.bestIP) + ' ' + esc(String(summary.bestLatency)) + 'ms '
+                + esc(clo) + esc(spd) + '</div>';
+        }
+        // 排名表格
+        summaryHTML += '<div style="overflow-x:auto"><table class="result-table">'
+            + '<thead><tr><th>#</th><th>IP</th><th>延迟</th><th>速度</th><th>机房</th></tr></thead><tbody>';
+        for (var ri = 0; ri < topN.length; ri++) {
+            var r = topN[ri];
+            var lat = (r.latency !== undefined && r.latency !== Infinity) ? r.latency + "ms" : "-";
+            var spd2 = r.speed ? r.speed.toFixed(1) + "MB/s" : "-";
+            var col = r.colo || "";
+            summaryHTML += '<tr>'
+                + '<td style="color:#8e8e93;text-align:right;font-size:10px">' + (ri + 1) + '</td>'
+                + '<td class="r-ip">' + esc(r.ip || "") + '</td>'
+                + '<td class="r-lat">' + esc(String(lat)) + '</td>'
+                + '<td class="r-spd">' + esc(String(spd2)) + '</td>'
+                + '<td class="r-colo">' + esc(col) + '</td>'
+                + '</tr>';
+        }
+        summaryHTML += '</tbody></table></div>';
+
+        // 原始文本 (便于复制)
+        var rawText = "";
+        for (var rj = 0; rj < topN.length; rj++) {
+            var ri2 = topN[rj];
+            rawText += (rj + 1) + ". " + ri2.ip + " " + (ri2.latency || "?") + "ms";
+            if (ri2.speed) rawText += " " + ri2.speed.toFixed(1) + "MB/s";
+            if (ri2.colo) rawText += " " + ri2.colo;
+            rawText += "\n";
+        }
+        summaryHTML += '<div style="margin-top:8px;font-size:10px;color:#8e8e93">原始文本 (长按复制)</div>'
+            + '<div class="raw-text">' + esc(rawText) + '</div>';
+        summaryHTML += '</div>';
     }
 
     // 历史卡片
@@ -319,6 +356,15 @@ function renderPage() {
 '.status-new{background:#fff3cd;color:#856404;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:12px}' +
 '.summary-card .summary-text{font-size:11px;color:#8e8e93;margin-bottom:4px}' +
 '.summary-card .summary-best{font-size:16px;font-weight:600;color:#1c1c1e}' +
+'.result-table{width:100%;border-collapse:collapse;font-size:12px}' +
+'.result-table th{text-align:left;color:#8e8e93;font-weight:600;font-size:10px;text-transform:uppercase;padding:6px 4px;border-bottom:1px solid #e9e9ea}' +
+'.result-table td{padding:5px 4px;border-bottom:1px solid #f5f5f5;font-variant-numeric:tabular-nums}' +
+'.result-table .r-ip{font-family:Menlo,Consolas,monospace;font-size:11px;color:#1c1c1e}' +
+'.result-table .r-lat{text-align:right;font-weight:500}' +
+'.result-table .r-spd{text-align:right;color:#34c759;font-weight:500}' +
+'.result-table .r-colo{text-align:center;color:#8e8e93;font-size:10px}' +
+'.result-table tr:first-child .r-ip{color:#007aff;font-weight:600}' +
+'.raw-text{background:#1c1c1e;color:#32d74b;padding:10px;border-radius:8px;font-size:10px;font-family:Menlo,Consolas,monospace;line-height:1.5;word-break:break-all;overflow-x:auto;max-height:280px;overflow-y:auto;white-space:pre}' +
 '.hist-item{cursor:pointer;display:block;width:100%}' +
 '.hist-item:active{opacity:.6}' +
 '.hist-label{font-size:13px;color:#1c1c1e}' +
