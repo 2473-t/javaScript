@@ -220,7 +220,7 @@ function row(label, sub, name, value, attrs) {
         + '</div>';
 }
 
-// ── 构建测速页面 ──
+// ── 构建测速页面 (通过 /api-ping 代理测速) ──
 function renderTestPage() {
     var seedIPs = [];
     try {
@@ -250,6 +250,7 @@ function renderTestPage() {
     'td{padding:5px 3px;border-bottom:1px solid #f5f5f5;font-variant-numeric:tabular-nums}' +
     '.rip{font-family:Menlo,monospace;font-size:11px;color:#1c1c1e}' +
     '.rlat{text-align:right;font-weight:500}' +
+    '.rcol{text-align:center;color:#8e8e93;font-size:10px}' +
     'tr:nth-child(1) .rip{color:#007aff;font-weight:600}' +
     '.prog{text-align:center;padding:8px 0;color:#8e8e93;font-size:12px}' +
     '.raw{background:#1c1c1e;color:#32d74b;padding:10px;border-radius:8px;font-size:10px;font-family:Menlo,monospace;line-height:1.5;white-space:pre;overflow-x:auto;max-height:200px;overflow-y:auto}' +
@@ -261,7 +262,7 @@ function renderTestPage() {
     '<button class="btn btn-start" id=btn onclick=start()>开始测速</button>' +
     '<div class=prog id=prog></div>' +
     '<div id=results><div class=card><div class=card-title>延迟排名</div>' +
-    '<div style=overflow-x:auto><table><thead><tr><th>#</th><th>IP</th><th>延迟</th></tr></thead><tbody id=tbl></tbody></table></div>' +
+    '<div style=overflow-x:auto><table><thead><tr><th>#</th><th>IP</th><th>延迟</th><th>机房</th></tr></thead><tbody id=tbl></tbody></table></div>' +
     '<p class=prog id=sum style=font-size:12px></p>' +
     '<div class=raw id=raw></div></div></div>' +
 
@@ -282,51 +283,35 @@ function renderTestPage() {
     'else{s[x]=true;r.push(x);}}' +
     'return r;}' +
 
-    'function fmtIP(ip){return ip.indexOf(":")>=0?"["+ip+"]":ip;}' +
-    'function ping(ip){return new Promise(function(rs){' +
-    'var img=new Image();var t0=performance.now();var done=false;' +
-    'var u="http://"+fmtIP(ip)+"/cdn-cgi/trace?_="+Math.random();' +
-    'var tid=setTimeout(function(){if(!done){done=true;img.src="";rs({ip:ip,lat:-2,err:"timeout"});}},5000);' +
-    'img.onload=function(){if(!done){done=true;clearTimeout(tid);rs({ip:ip,lat:Math.round(performance.now()-t0)});}};' +
-    'img.onerror=function(){if(!done){done=true;clearTimeout(tid);rs({ip:ip,lat:Math.round(performance.now()-t0)});}};' +
-    'img.src=u;' +
-    '});}' +
-
-    'var running=false,allResults=[];' +
+    'var running=false;' +
     'function start(){if(running)return;var ips=parseIPs(document.getElementById("ipList").value);' +
     'if(!ips.length){var p=document.getElementById("prog");p.textContent="请先输入IP地址";p.style.color="#ff3b30";return;}' +
-    'running=true;allResults=[];var btn=document.getElementById("btn");btn.textContent="测速中...";btn.className="btn btn-start running";' +
-    'var prog=document.getElementById("prog");prog.style.color="#8e8e93";prog.textContent="正在测试 "+ips.length+" 个IP...";' +
-    'var tbl=document.getElementById("tbl");tbl.innerHTML="";' +
-    'var raw=document.getElementById("raw");var sum=document.getElementById("sum");' +
+    'running=true;var btn=document.getElementById("btn");btn.textContent="测速中...";btn.className="btn btn-start running";' +
+    'var prog=document.getElementById("prog");prog.style.color="#8e8e93";prog.textContent="正在测试 "+ips.length+" 个IP (通过QX代理)...";' +
     'var res=document.getElementById("results");res.style.display="none";' +
-    'var B=8;' +
-    'var t0All=performance.now();' +
-    'function run(i){if(i>=ips.length){finish(t0All);return;}' +
-    'var batch=ips.slice(i,i+B);' +
-    'var doneCnt=allResults.length;' +
-    'prog.textContent="延迟测速: "+Math.min(i+B,ips.length)+"/"+ips.length+" (已响应: "+doneCnt+", 超时: "+allResults.filter(function(r){return r.lat===-2;}).length+")";' +
-    'Promise.all(batch.map(ping)).then(function(br){' +
-    'for(var j=0;j<br.length;j++)allResults.push(br[j]);' +
-    'setTimeout(function(){run(i+B);},20);});}' +
-    'function finish(tAll){running=false;var elapsed=Math.round(performance.now()-tAll);' +
+    'var tStart=Date.now();' +
+    'fetch("/api-ping?ips="+encodeURIComponent(ips.join(","))).then(function(r){return r.json();}).then(function(data){' +
+    'running=false;var elapsed=Date.now()-tStart;' +
     'btn.textContent="开始测速";btn.className="btn btn-start";' +
-    'var ok=allResults.filter(function(r){return r.lat>=0;});' +
-    'var to=allResults.filter(function(r){return r.lat===-2;});' +
-    'prog.textContent="完成: "+ok.length+"/"+allResults.length+" IP响应 | "+to.length+" 超时 | 耗时 "+elapsed+"ms";' +
+    'if(!data||!data.length){prog.textContent="无结果返回";prog.style.color="#ff3b30";return;}' +
+    'var ok=data.filter(function(r){return r.latency>=0;});' +
+    'var to=data.filter(function(r){return r.latency<0;});' +
+    'prog.textContent="完成: "+ok.length+"/"+data.length+" IP响应 | "+to.length+" 超时 | 耗时 "+elapsed+"ms";' +
     'prog.style.color=ok.length?"#34c759":"#ff3b30";' +
-    'if(ok.length===0){prog.textContent+=" — 所有IP无响应，请检查网络或IP列表";return;}' +
-    'ok.sort(function(a,b){return a.lat-b.lat;});' +
-    'var show=ok.slice(0,Math.min(30,ok.length));tbl.innerHTML="";' +
-    'var best=0;for(var i=0;i<Math.min(3,show.length);i++)best+=show[i].lat;' +
-    'var avg=show.length>=3?Math.round(best/3):0;' +
+    'if(!ok.length){prog.textContent+=" — 所有IP无响应";return;}' +
+    'ok.sort(function(a,b){return a.latency-b.latency;});' +
+    'var show=ok.slice(0,Math.min(30,ok.length));' +
+    'var tbl=document.getElementById("tbl");tbl.innerHTML="";' +
     'for(var i=0;i<show.length;i++){var r=show[i];' +
-    'tbl.innerHTML+="<tr><td style=color:#8e8e93;text-align:right;font-size:10px;width:20px>"+(i+1)+"</td><td class=rip>"+r.ip+"</td><td class=rlat>"+r.lat+"ms</td></tr>";}' +
-    'var rt="";for(var j=0;j<show.length;j++){rt+=(j+1)+". "+show[j].ip+" "+show[j].lat+"ms\\n";}' +
+    'tbl.innerHTML+="<tr><td style=color:#8e8e93;text-align:right;font-size:10px;width:20px>"+(i+1)+"</td><td class=rip>"+r.ip+"</td><td class=rlat>"+r.latency+"ms</td><td class=rcol>"+(r.colo||"")+"</td></tr>";}' +
+    'var rt="";for(var j=0;j<show.length;j++){rt+=(j+1)+". "+show[j].ip+" "+show[j].latency+"ms";if(show[j].colo)rt+=" "+show[j].colo;rt+="\\n";}' +
     'if(to.length)rt+="\\n超时: "+to.length+" IP\\n";' +
-    'raw.textContent=rt;sum.textContent="完成 "+ok.length+"/"+allResults.length+" IP | 最快: "+show[0].ip+" "+show[0].lat+"ms"+(avg?" | Top3平均: "+avg+"ms":"");' +
-    'res.style.display="block";}' +
-    'run(0);}' +
+    'document.getElementById("raw").textContent=rt;' +
+    'var top3=show.slice(0,Math.min(3,show.length));var avg=top3.length?Math.round(top3.reduce(function(s,r){return s+r.latency;},0)/top3.length):0;' +
+    'document.getElementById("sum").textContent="完成 "+ok.length+"/"+data.length+" IP | 最快: "+show[0].ip+" "+show[0].latency+"ms"+(avg?" | Top3平均: "+avg+"ms":"");' +
+    'res.style.display="block";' +
+    '}).catch(function(e){running=false;btn.textContent="开始测速";btn.className="btn btn-start";prog.textContent="请求失败: "+e.message;prog.style.color="#ff3b30";});' +
+    '}' +
     '</script>' +
     '</body></html>';
 }
@@ -609,6 +594,87 @@ function handleRestore() {
     }
 }
 
+// ── API: 代理延迟测速 (/api-ping?ips=1.2.3.4,5.6.7.8) ──
+function toURL(ip, path) {
+    if (ip.indexOf(":") >= 0) {
+        return "http://[" + ip + "]" + path;
+    }
+    return "http://" + ip + path;
+}
+
+function measureOnePing(ip, timeout) {
+    var t0 = Date.now();
+    return $task.fetch({
+        url: toURL(ip, "/cdn-cgi/trace"),
+        method: "HEAD",
+        timeout: timeout || 3000,
+        policy: "DIRECT",
+        opts: { redirection: false },
+        headers: {
+            "User-Agent": "QX-CFOptimizer/1.0",
+            "Accept": "*/*",
+            "Connection": "close"
+        }
+    }).then(function(response) {
+        var elapsed = Date.now() - t0;
+        var colo = "";
+        try {
+            var cfRay = (response.headers || {})["CF-Ray"] || "";
+            var dash = cfRay.lastIndexOf("-");
+            if (dash >= 0) colo = cfRay.substring(dash + 1);
+        } catch (e) {}
+        return { ip: ip, latency: elapsed, colo: colo };
+    }).catch(function(reason) {
+        return { ip: ip, latency: -1, colo: "", error: (reason && reason.error) || "timeout" };
+    });
+}
+
+function handleApiPing() {
+    var url = reqURL();
+    var qIdx = url.indexOf("?ips=");
+    if (qIdx < 0) {
+        $done({ statusCode: 400, headers: { "Content-Type": "application/json" }, body: "[]" });
+        return;
+    }
+    var ipsRaw = "";
+    try { ipsRaw = decodeURIComponent(url.substring(qIdx + 5)); } catch (e) { ipsRaw = url.substring(qIdx + 5); }
+    // 也支持 ?ips= 后面直接跟 URL-encoded IP 列表
+    var ips = ipsRaw.split(/[,;\s]+/).filter(function(x) { return x.trim(); });
+    if (ips.length === 0) {
+        $done({ statusCode: 200, headers: { "Content-Type": "application/json" }, body: "[]" });
+        return;
+    }
+
+    var CONCURRENCY = 8;
+    var TIMEOUT = 3000;
+    var allResults = [];
+
+    function runBatch(startIdx) {
+        if (startIdx >= ips.length) {
+            // All done
+            $done({
+                statusCode: 200,
+                headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
+                body: JSON.stringify(allResults)
+            });
+            return;
+        }
+        var batch = ips.slice(startIdx, startIdx + CONCURRENCY);
+        var promises = [];
+        for (var i = 0; i < batch.length; i++) {
+            promises.push(measureOnePing(batch[i], TIMEOUT));
+        }
+        Promise.all(promises).then(function(batchResults) {
+            for (var j = 0; j < batchResults.length; j++) {
+                allResults.push(batchResults[j]);
+            }
+            runBatch(startIdx + CONCURRENCY);
+        });
+    }
+
+    runBatch(0);
+}
+
 // ═══════════════════════════════════════
 // 主入口
 // ═══════════════════════════════════════
@@ -621,12 +687,15 @@ function urlHasPath(url, path) {
     return url.indexOf("cfui.com" + path) >= 0 || url.indexOf(path) >= 0;
 }
 
-var isTest = urlHasPath(url, "/test");
+var isApiPing = url.indexOf("cfui.com/api-ping") >= 0 || (url.indexOf("/api-ping") >= 0 && url.indexOf("cfui.com") < 0);
+var isTest = urlHasPath(url, "/test") && !isApiPing;
 var isSave = urlHasPath(url, "/save") && method === "POST";
 var isSaveSub = urlHasPath(url, "/save-sub") && method === "POST";
 var isRestore = urlHasPath(url, "/restore") && method === "POST";
 
-if (isTest) {
+if (isApiPing) {
+    handleApiPing();  // calls $done asynchronously
+} else if (isTest) {
     $done({
         statusCode: 200,
         headers: {
